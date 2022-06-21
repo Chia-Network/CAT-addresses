@@ -1,9 +1,8 @@
 import logging
 import time
 
-from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.condition_opcodes import ConditionOpcode
-from chia.util.condition_tools import  conditions_by_opcode
+from chia.util.condition_tools import conditions_by_opcode
 from chia.wallet.cat_wallet.cat_utils import match_cat_puzzle
 from clvm.casts import int_from_bytes
 
@@ -25,6 +24,8 @@ class CoinSpendProcessor:
                 _, tail_hash, _ = curried_args
 
                 outer_solution = coin_spend.solution.to_program()
+                coin_name = coin_spend.coin.name()
+
                 r = outer_puzzle.run(outer_solution)
                 _, conditions = parse_sexp_to_conditions(r)
 
@@ -40,28 +41,21 @@ class CoinSpendProcessor:
                                 self.log.warn("Found CAT create coin condition without a hint")
                             else:
                                 hint = condition.vars[2]
-                                self.log.info("condition.hint=%s", hint)
-
-                # self.process_cat(
-                #     height, coin_name, tail_hash, outer_solution, coin_spend.coin.amount
-                # )
+                                self.record_cat_coin(
+                                    height, coin_name, tail_hash, puzzle_hash, amount, hint
+                                )
             else:
                 self.log.debug("Found non-CAT coin spend")
 
-    # def process_cat(self, height, coin_name, tail_hash, outer_solution, amount):
-    #     self.log.info("Processing CAT spend with TAIL %s and amount %i", tail_hash, amount)
+    def record_cat_coin(self, height, coin_name, tail_hash, puzzle_hash, amount, hint):
+        self.log.info(
+            "Recording CAT coin created with coin name %s, TAIL %s, puzzle_hash %s, amount %i, and hint %s, at block height %i",
+            coin_name,
+            tail_hash,
+            puzzle_hash,
+            amount,
+            hint,
+            height
+        )
 
-    #     this_coin_info = outer_solution.rest().rest().rest().first()
-
-    #     this_coin_info_parent_coin_info = this_coin_info.first()
-    #     this_coin_info_puzzle_hash = this_coin_info.rest().first()
-    #     # this_coin_info_amount = this_coin_info.rest().rest().first()
-
-    #     if len(this_coin_info_parent_coin_info.atom) != 32 or len(this_coin_info_puzzle_hash.atom) != 32:
-    #         alert_message = "⚠️ FOUND MALICIOUS COIN SPEND! Coin name 0x{} @channel".format(coin_name)
-    #         keybase_alert(alert_message)
-    #         self.log.warn(alert_message)
-    #         return False
-    #     else:
-    #         self.log.info("Processed CAT spend and everything is fine - coin_name=%s height=%i", coin_name, height)
-    #         return True
+        # todo: record created CAT coin details
