@@ -27,6 +27,8 @@ class CoinSpendProcessor:
                 coin_name = coin_spend.coin.name()
 
                 r = outer_puzzle.run(outer_solution)
+                self.log.info("r=%s", r)
+                self.log.info("outer_solution=%s", outer_solution)
                 _, conditions = parse_sexp_to_conditions(r)
 
                 if conditions is not None:
@@ -38,7 +40,7 @@ class CoinSpendProcessor:
                             amount = int_from_bytes(condition.vars[1])
 
                             if len(condition.vars) < 3:
-                                self.log.warn("Found CAT create coin condition without a hint")
+                                self.log.warn("Found CAT create coin condition without a hint: %s", condition)
                             else:
                                 hint = condition.vars[2]
                                 self.record_cat_coin(
