@@ -37,7 +37,7 @@ class CoinSpendProcessor:
                             puzzle_hash = condition.vars[0]
                             amount = int_from_bytes(condition.vars[1])
 
-                            if len(condition.vars) < 2:
+                            if len(condition.vars) < 3:
                                 self.log.warn("Found CAT create coin condition without a hint")
                             else:
                                 hint = condition.vars[2]
