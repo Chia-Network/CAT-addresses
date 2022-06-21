@@ -5,12 +5,12 @@ RUN apt-get update && apt-get install curl pip python3.9-venv python3.9-distutil
     curl --proto '=https' --tlsv1.2 -sSf -L https://deb.nodesource.com/setup_${NODEJS_MAJOR_VERSION}.x | bash - &&\
     apt-get install nodejs -y
 
-FROM ubuntu as cat-scanner-base
+FROM ubuntu as cat-addresses-base
 WORKDIR /app
 COPY . /app/
 
 # CHIA BUILD STEP
-FROM cat-scanner-base as cat-scanner
+FROM cat-addresses-base as cat-addresses
 ENV PATH=/chia-blockchain/venv/bin:$PATH
 ENV CHIA_ROOT=/root/.chia/mainnet
 ENV keys="generate"
