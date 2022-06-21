@@ -1,0 +1,8 @@
+image:
+  pullPolicy: IfNotPresent
+  tag: {{ DOCKER_TAG }}
+
+imagePullSecrets:
+  - name: cat-scanner-image-pull
+
+webhookUrl: {{ KEYBASE_WEBHOOK_URL }}
