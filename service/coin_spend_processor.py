@@ -14,7 +14,7 @@ prefix = "xch"
 class CoinSpendProcessor:
     last_heartbeat_time = time.time()
     log = logging.getLogger("CoinSpendProcessor")
-    address_store = AddressStore()
+    address_store = AddressStore("addresses.dat")
 
     def process_coin_spends(self, height, header_hash: str, coin_spends, height_persistance):
         self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
