@@ -6,6 +6,7 @@ from typing import Optional
 
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
+from src.config import Config
 
 from src.height_persistance import HeightPersistance
 from src.rpc_options import RpcOptions
@@ -24,7 +25,8 @@ class FullNodeClient:
     rpc_options = RpcOptions()
     coin_spend_processor: CoinSpendProcessor
 
-    def __init__(self, coin_spend_processor: CoinSpendProcessor, height_persistance: HeightPersistance):
+    def __init__(self, config: Config, coin_spend_processor: CoinSpendProcessor, height_persistance: HeightPersistance):
+        self.config = config
         self.height_persistance = height_persistance
         self.coin_spend_processor = coin_spend_processor
         self.height_persistance.init()
@@ -53,11 +55,15 @@ class FullNodeClient:
     """
 
     @backoff.on_predicate(backoff.constant, jitter=None, interval=0)
-    async def start(self):
+    async def collect_puzzle_hashes(self):
         peak = await self.__get_peak()
         persisted_height = self.height_persistance.get()
 
         height = persisted_height + 1
+
+        if height > self.config.target_height:
+            self.log.info("Reached target height")
+            return True
 
         if height < peak.height:
             block_record = await self.__get_block_record(height)

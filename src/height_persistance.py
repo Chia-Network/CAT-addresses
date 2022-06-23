@@ -2,12 +2,15 @@ from logging import getLogger, Logger
 import sqlite3
 from typing import Union
 
+from src.config import Config
+
 
 class HeightPersistance:
     connection: sqlite3.Connection
     log: Logger = getLogger("HeightPersistance")
 
-    def __init__(self, connection: sqlite3.Connection):
+    def __init__(self, config: Config, connection: sqlite3.Connection):
+        self.config = config
         self.connection = connection
 
     def init(self):
@@ -23,7 +26,7 @@ class HeightPersistance:
         )
         value = self.get()
         if value is None:
-            cursor.execute("INSERT INTO metadata(name, value) VALUES('height', 0)")
+            cursor.execute("INSERT INTO metadata(name, value) VALUES(?, ?)", ("height", self.config.start_height))
         self.connection.commit()
         cursor.close()
 
