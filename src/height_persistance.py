@@ -1,5 +1,6 @@
 from logging import getLogger, Logger
 import sqlite3
+from typing import Union
 
 
 class HeightPersistance:
@@ -20,14 +21,18 @@ class HeightPersistance:
             );
             """
         )
-        cursor.execute("INSERT INTO metadata(name, value) VALUES('height', 0)")
+        value = self.get()
+        if value is None:
+            cursor.execute("INSERT INTO metadata(name, value) VALUES('height', 0)")
         self.connection.commit()
         cursor.close()
 
-    def get(self) -> int:
+    def get(self) -> Union[int, None]:
         cursor = self.connection.cursor()
         cursor.execute("SELECT value FROM metadata WHERE name = 'height'")
         output = cursor.fetchone()
+        if output is None:
+            return None
         value = output[0]
         self.log.info("value %i", value)
         self.connection.commit()

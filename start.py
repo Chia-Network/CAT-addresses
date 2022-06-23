@@ -7,7 +7,7 @@ from src.height_persistance import HeightPersistance
 
 from src.coin_spend_processor import CoinSpendProcessor
 
-connection = sqlite3.connect('cat.db')
+connection = sqlite3.connect('/root/.chia/mainnet/db/cat.db')
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
