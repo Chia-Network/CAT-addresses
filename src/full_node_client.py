@@ -7,9 +7,9 @@ from typing import Optional
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
 
-from service.height_persistance import HeightPersistance
-from service.rpc_options import RpcOptions
-from service.coin_spend_processor import CoinSpendProcessor
+from src.height_persistance import HeightPersistance
+from src.rpc_options import RpcOptions
+from src.coin_spend_processor import CoinSpendProcessor
 
 backoff_logger = logging.getLogger('backoff')
 
@@ -27,6 +27,7 @@ class FullNodeClient:
     def __init__(self, coin_spend_processor: CoinSpendProcessor, height_persistance: HeightPersistance):
         self.height_persistance = height_persistance
         self.coin_spend_processor = coin_spend_processor
+        self.height_persistance.init()
 
     @backoff.on_exception(
         backoff.expo, (ConnectionRefusedError, aiohttp.client_exceptions.ClientConnectorError, Exception), max_tries=10

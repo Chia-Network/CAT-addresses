@@ -1,18 +1,20 @@
 import asyncio
 import logging
-import os
+import sqlite3
 import sys
-from service.full_node_client import FullNodeClient
-from service.height_persistance import HeightPersistance
+from src.full_node_client import FullNodeClient
+from src.height_persistance import HeightPersistance
 
-from service.coin_spend_processor import CoinSpendProcessor
+from src.coin_spend_processor import CoinSpendProcessor
+
+connection = sqlite3.connect('cat.db')
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 async def start():
-    coin_spend_processor = CoinSpendProcessor()
-    height_persistance = HeightPersistance(os.getenv("HEIGHT_PERSISTANCE_FILE_PATH", "height.dat"))
+    coin_spend_processor = CoinSpendProcessor(connection)
+    height_persistance = HeightPersistance(connection)
     full_node_client = FullNodeClient(coin_spend_processor, height_persistance)
 
     await full_node_client.bootstrap()

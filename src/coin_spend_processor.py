@@ -12,10 +12,8 @@ from chia.util.ints import uint64
 from chia.wallet.cat_wallet.cat_utils import match_cat_puzzle
 from clvm.casts import int_from_bytes
 
-from service.puzzlehash_store import PuzzlehashRecord, PuzzlehashStore
-from service.snapshot import Snapshot
-
-connection = sqlite3.connect('cat.db')
+from src.puzzlehash_store import PuzzlehashRecord, PuzzlehashStore
+from src.snapshot import Snapshot
 
 
 def created_outputs_for_conditions_dict(
@@ -26,7 +24,7 @@ def created_outputs_for_conditions_dict(
     for cvp in conditions_dict.get(ConditionOpcode.CREATE_COIN, []):
         puzzle_hash, amount_bin = cvp.vars[0], cvp.vars[1]
         amount = int_from_bytes(amount_bin)
-        # filter out magic coin spends
+        # ignore magic conditions
         if amount > 0:
             coin = Coin(input_coin_name, bytes32(puzzle_hash), uint64(amount))
             output_coins.append(coin)
@@ -36,10 +34,10 @@ def created_outputs_for_conditions_dict(
 class CoinSpendProcessor:
     last_heartbeat_time = time.time()
     log = logging.getLogger("CoinSpendProcessor")
-    puzzle_hash_store = PuzzlehashStore(connection)
     snapshot = Snapshot("snapshot.csv")
 
-    def __init__(self):
+    def __init__(self, connection: sqlite3.Connection):
+        self.puzzle_hash_store = PuzzlehashStore(connection)
         self.puzzle_hash_store.init()
 
     def process_coin_spends(self, height, header_hash: str, coin_spends, height_persistance):
@@ -76,7 +74,5 @@ class CoinSpendProcessor:
                                 puzzle_hash_record.inner_puzzle_hash,
                                 puzzle_hash_record.tail_hash
                             )
-
-                            self.snapshot.add(puzzle_hash_record)
             else:
                 self.log.debug("Found non-CAT coin spend")

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from service.height_persistance import HeightPersistance
+from src.height_persistance import HeightPersistance
 
 test_path = "test.dat"
 
