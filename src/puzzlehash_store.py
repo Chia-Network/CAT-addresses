@@ -34,6 +34,7 @@ class PuzzlehashStore:
             CREATE TABLE IF NOT EXISTS puzzle_hash(
                 inner_puzzle_hash TEXT NOT NULL,
                 tail_hash TEXT NOT NULL,
+                processed INTEGER DEFAULT 0,
                 PRIMARY KEY (inner_puzzle_hash, tail_hash)
             );
             """
