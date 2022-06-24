@@ -1,5 +1,4 @@
 import logging
-import sqlite3
 import time
 
 from typing import Dict, List
@@ -36,9 +35,8 @@ class CoinSpendProcessor:
     log = logging.getLogger("CoinSpendProcessor")
     snapshot = Snapshot("snapshot.csv")
 
-    def __init__(self, connection: sqlite3.Connection):
-        self.puzzle_hash_store = PuzzlehashStore(connection)
-        self.puzzle_hash_store.init()
+    def __init__(self, puzzle_hash_store: PuzzlehashStore):
+        self.puzzle_hash_store = puzzle_hash_store
 
     def process_coin_spends(self, height, header_hash: str, coin_spends, height_persistance):
         self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
@@ -54,9 +52,6 @@ class CoinSpendProcessor:
                 outer_solution = coin_spend.solution.to_program()
                 inner_solution = outer_solution.first()
 
-                self.log.info("inner_puzzle=%s", inner_puzzle)
-                self.log.info("inner_solution=%s", inner_solution)
-
                 _, conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
 
                 if conditions is not None:
@@ -64,8 +59,8 @@ class CoinSpendProcessor:
                     if create_coin_conditions is not None:
                         for coin in create_coin_conditions:
                             puzzle_hash_record = PuzzlehashRecord(
-                                coin.puzzle_hash,
-                                tail_hash
+                                coin.puzzle_hash.hex(),
+                                tail_hash.as_python().hex()
                             )
                             self.puzzle_hash_store.persist(puzzle_hash_record)
 

@@ -6,9 +6,12 @@ from typing import Optional
 
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
 from src.config import Config
 
 from src.height_persistance import HeightPersistance
+from src.puzzlehash_store import PuzzlehashStore
 from src.rpc_options import RpcOptions
 from src.coin_spend_processor import CoinSpendProcessor
 
@@ -21,13 +24,21 @@ backoff_logger.setLevel(logging.ERROR)
 class FullNodeClient:
     client: FullNodeRpcClient
     height_persistance: HeightPersistance
+    puzzle_hash_store: PuzzlehashStore
     log = logging.getLogger("FullNodeClient")
     rpc_options = RpcOptions()
     coin_spend_processor: CoinSpendProcessor
 
-    def __init__(self, config: Config, coin_spend_processor: CoinSpendProcessor, height_persistance: HeightPersistance):
+    def __init__(
+        self,
+        config: Config,
+        coin_spend_processor: CoinSpendProcessor,
+        height_persistance: HeightPersistance,
+        puzzle_hash_store: PuzzlehashStore
+    ):
         self.config = config
         self.height_persistance = height_persistance
+        self.puzzle_hash_store = puzzle_hash_store
         self.coin_spend_processor = coin_spend_processor
         self.height_persistance.init()
 
@@ -81,6 +92,41 @@ class FullNodeClient:
 
         return False
 
+    @backoff.on_predicate(backoff.constant, jitter=None, interval=0)
+    async def collect_unspent_coins(self):
+        puzzle_hash_records = self.puzzle_hash_store.get(processed=0, count=3)
+
+        for (inner_puzzle_hash, tail_hash) in puzzle_hash_records:
+            inner_puzzle_hash = bytes32.fromhex(inner_puzzle_hash)
+            tail_hash = bytes32.fromhex(tail_hash)
+
+            outer_puzzle_hash = construct_cat_puzzle(
+                CAT_MOD, tail_hash, inner_puzzle_hash
+            ).get_tree_hash(inner_puzzle_hash)
+
+            self.log.info(
+                "inner_puzzle_hash: %s tail_hash: %s outer_puzzle_hash: %s",
+                inner_puzzle_hash.hex(),
+                tail_hash.hex(),
+                outer_puzzle_hash.hex()
+            )
+
+            coins = await self.__get_coin_records_by_puzzle_hash(outer_puzzle_hash, True)
+
+            for coin in coins:
+                self.log.info("coin: %s", coin)
+                self.log.info("coin.name: %s", coin.coin.name().hex())
+
+                # todo: only process coins that are spent_index == 0 or spent_index > target_height (unspent before target height)
+
+                # todo: insert coins to DB
+
+            # todo: once all coins are succesfully inserted, update processed for the puzzle hash to 1
+
+        time.sleep(5)
+
+        return False
+
     async def __process_transaction_block(self, height, header_hash):
         self.log.debug("Processing transaction block %s", header_hash)
 
@@ -102,3 +148,16 @@ class FullNodeClient:
     @backoff.on_exception(backoff.expo, ValueError, max_tries=10)
     async def __get_block_spends(self, header_hash: str):
         return await self.client.get_block_spends(header_hash)
+
+    @backoff.on_exception(backoff.expo, ValueError, max_tries=10)
+    async def __get_coin_records_by_puzzle_hash(
+        self,
+        puzzle_hash: bytes32,
+        include_spent_coins: bool = False
+    ):
+        return await self.client.get_coin_records_by_puzzle_hash(
+            puzzle_hash,
+            include_spent_coins,
+            start_height=self.config.start_height,
+            end_height=self.config.target_height
+        )
