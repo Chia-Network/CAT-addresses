@@ -2,11 +2,12 @@ import aiohttp
 import backoff
 import logging
 import time
-from typing import Optional
+from typing import List, Optional
 
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
 from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.coin_record import CoinRecord
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
 from src.config import Config
 
@@ -114,14 +115,16 @@ class FullNodeClient:
             coins = await self.__get_coin_records_by_puzzle_hash(outer_puzzle_hash, True)
 
             for coin in coins:
-                self.log.info("coin: %s", coin)
-                self.log.info("coin.name: %s", coin.coin.name().hex())
+                # Only process coins that were not spent up to the target height
+                if coin.spent_block_index == 0 or coin.spent_block_index > self.config.target_height:
+                    self.log.info("coin: %s", coin)
+                    self.log.info("coin.name: %s", coin.coin.name().hex())
 
-                # todo: only process coins that are spent_index == 0 or spent_index > target_height (unspent before target height)
-
-                # todo: insert coins to DB
+                    # todo: insert coin to DB
 
             # todo: once all coins are succesfully inserted, update processed for the puzzle hash to 1
+
+            # todo: handle case where all puzzle hashes have been processed
 
         time.sleep(5)
 
@@ -154,7 +157,7 @@ class FullNodeClient:
         self,
         puzzle_hash: bytes32,
         include_spent_coins: bool = False
-    ):
+    ) -> List[CoinRecord]:
         return await self.client.get_coin_records_by_puzzle_hash(
             puzzle_hash,
             include_spent_coins,
