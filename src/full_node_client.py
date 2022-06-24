@@ -9,6 +9,7 @@ from chia.rpc.full_node_rpc_client import FullNodeRpcClient
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
+from src.coin_store import CoinStore, CoinRecord as CR
 from src.config import Config
 
 from src.height_persistance import HeightPersistance
@@ -26,6 +27,7 @@ class FullNodeClient:
     client: FullNodeRpcClient
     height_persistance: HeightPersistance
     puzzle_hash_store: PuzzlehashStore
+    coin_store: CoinStore
     log = logging.getLogger("FullNodeClient")
     rpc_options = RpcOptions()
     coin_spend_processor: CoinSpendProcessor
@@ -35,11 +37,13 @@ class FullNodeClient:
         config: Config,
         coin_spend_processor: CoinSpendProcessor,
         height_persistance: HeightPersistance,
-        puzzle_hash_store: PuzzlehashStore
+        puzzle_hash_store: PuzzlehashStore,
+        coin_store: CoinStore
     ):
         self.config = config
         self.height_persistance = height_persistance
         self.puzzle_hash_store = puzzle_hash_store
+        self.coin_store = coin_store
         self.coin_spend_processor = coin_spend_processor
         self.height_persistance.init()
 
@@ -117,10 +121,16 @@ class FullNodeClient:
             for coin in coins:
                 # Only process coins that were not spent up to the target height
                 if coin.spent_block_index == 0 or coin.spent_block_index > self.config.target_height:
-                    self.log.info("coin: %s", coin)
-                    self.log.info("coin.name: %s", coin.coin.name().hex())
+                    coin_record = CR(
+                        coin.coin.name().hex(),
+                        inner_puzzle_hash.hex(),
+                        outer_puzzle_hash.hex(),
+                        coin.coin.amount,
+                        tail_hash.hex()
+                    )
+                    self.coin_store.persist(coin_record)
 
-                    # todo: insert coin to DB
+                    self.log.info("Persisted coin record for coin: %s", coin_record.coin_name)
 
             # todo: once all coins are succesfully inserted, update processed for the puzzle hash to 1
 
