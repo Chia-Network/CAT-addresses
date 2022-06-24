@@ -14,6 +14,7 @@ connection = sqlite3.connect('/root/.chia/mainnet/db/cat.db')
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
+log = logging.getLogger('start')
 
 async def start():
     config = Config()
@@ -28,6 +29,8 @@ async def start():
     await full_node_client.bootstrap()
     await full_node_client.collect_puzzle_hashes()
     await full_node_client.collect_unspent_coins()
+
+    log.info("Coins collected")
 
     # todo: generate summary and export snapshot data
 

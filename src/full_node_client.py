@@ -101,20 +101,14 @@ class FullNodeClient:
     async def collect_unspent_coins(self):
         puzzle_hash_records = self.puzzle_hash_store.get(processed=0, count=3)
 
+        # All puzzle hash records have been processed
+        if len(puzzle_hash_records) == 0:
+            return True
+
         for (inner_puzzle_hash, tail_hash) in puzzle_hash_records:
-            inner_puzzle_hash = bytes32.fromhex(inner_puzzle_hash)
-            tail_hash = bytes32.fromhex(tail_hash)
-
             outer_puzzle_hash = construct_cat_puzzle(
-                CAT_MOD, tail_hash, inner_puzzle_hash
-            ).get_tree_hash(inner_puzzle_hash)
-
-            self.log.info(
-                "inner_puzzle_hash: %s tail_hash: %s outer_puzzle_hash: %s",
-                inner_puzzle_hash.hex(),
-                tail_hash.hex(),
-                outer_puzzle_hash.hex()
-            )
+                CAT_MOD, bytes32.fromhex(tail_hash), bytes32.fromhex(inner_puzzle_hash)
+            ).get_tree_hash(bytes32.fromhex(inner_puzzle_hash))
 
             coins = await self.__get_coin_records_by_puzzle_hash(outer_puzzle_hash, True)
 
@@ -123,20 +117,22 @@ class FullNodeClient:
                 if coin.spent_block_index == 0 or coin.spent_block_index > self.config.target_height:
                     coin_record = CR(
                         coin.coin.name().hex(),
-                        inner_puzzle_hash.hex(),
+                        inner_puzzle_hash,
                         outer_puzzle_hash.hex(),
                         coin.coin.amount,
-                        tail_hash.hex()
+                        tail_hash
                     )
                     self.coin_store.persist(coin_record)
 
                     self.log.info("Persisted coin record for coin: %s", coin_record.coin_name)
 
-            # todo: once all coins are succesfully inserted, update processed for the puzzle hash to 1
+            self.puzzle_hash_store.mark_processed(
+                inner_puzzle_hash,
+                tail_hash,
+                1
+            )
 
-            # todo: handle case where all puzzle hashes have been processed
-
-        time.sleep(5)
+            self.log.info("Marked processed. inner_puzzle_hash=%s tail_hash=%s", inner_puzzle_hash, tail_hash)
 
         return False
 

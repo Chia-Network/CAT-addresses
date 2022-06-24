@@ -68,3 +68,16 @@ class PuzzlehashStore:
         self.connection.commit()
         cursor.close()
         return output
+
+    def mark_processed(self, inner_puzzle_hash: str, tail_hash: str, processed: int):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "UPDATE puzzle_hash SET processed = ? WHERE inner_puzzle_hash = ? AND tail_hash = ?",
+            (
+                processed,
+                inner_puzzle_hash,
+                tail_hash
+            )
+        )
+        self.connection.commit()
+        cursor.close()
