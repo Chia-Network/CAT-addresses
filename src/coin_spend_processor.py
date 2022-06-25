@@ -52,6 +52,8 @@ class CoinSpendProcessor:
                 outer_solution = coin_spend.solution.to_program()
                 inner_solution = outer_solution.first()
 
+                self.log.info("Found CAT with TAIL %s at height %i", tail_hash.as_python().hex(), height)
+
                 _, conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
 
                 if conditions is not None:

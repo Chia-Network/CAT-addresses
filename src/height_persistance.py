@@ -37,7 +37,6 @@ class HeightPersistance:
         if output is None:
             return None
         value = output[0]
-        self.log.info("value %i", value)
         self.connection.commit()
         cursor.close()
         return value
