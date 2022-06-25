@@ -1,5 +1,5 @@
 import logging
-
+import time
 from typing import Dict, List, Optional
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.sized_bytes import bytes32
@@ -7,13 +7,14 @@ from chia.types.coin_spend import CoinSpend
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
 from chia.util.condition_tools import conditions_dict_for_solution
-from chia.util.hash import std_hash
 from chia.util.ints import uint64
+from chia.util.hash import std_hash
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, match_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_store import CoinRecord, CoinStore
-
-log = logging.getLogger("CoinSpendProcessor")
+from src.config import Config
+from src.full_node import FullNode
+from src.height_persistance import HeightPersistance
 
 
 def created_outputs_for_conditions_dict(
@@ -31,13 +32,54 @@ def created_outputs_for_conditions_dict(
     return output_coins
 
 
-class CoinSpendProcessor:
+class CatSnapshot:
+    log = logging.getLogger('CatSnapshot')
+    full_node: FullNode
+
+    def __init__(self, full_node: FullNode):
+        self.full_node = full_node
+
     @staticmethod
-    def process_coin_spends(height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
+    async def create():
+        full_node = await FullNode.create()
+
+        return CatSnapshot(full_node)
+
+    async def generate(self):
+        while True:
+            blockchain_state = await self.full_node.get_blockchain_state()
+            peak = blockchain_state["peak"]
+
+            height = HeightPersistance.get() + 1
+
+            if height > Config.target_height:
+                break
+
+            if height < peak.height:
+                block_record = await self.full_node.get_block_record_by_height(height)
+
+                self.log.debug("Got block record %s at height: %i", block_record.header_hash, height)
+
+                if block_record.timestamp is not None:
+                    self.log.debug("Processing transaction block %s", block_record.header_hash)
+
+                    coin_spends = await self.full_node.get_block_spends(block_record.header_hash)
+
+                    self.log.debug("%i spends found in block", len(coin_spends))
+
+                    self.process_coin_spends(height, block_record.header_hash, coin_spends)
+                else:
+                    self.log.debug("Skipping non-transaction block at height %i", height)
+
+                HeightPersistance.set(height)
+            else:
+                time.sleep(5)
+
+    def process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
         if coin_spends is None or len(coin_spends) == 0:
             return None
 
-        log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
+        self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
 
         for coin_spend in coin_spends:
             outer_puzzle = coin_spend.puzzle_reveal.to_program()
@@ -57,7 +99,7 @@ class CoinSpendProcessor:
                 )
                 CoinStore.persist(spent_coin_record)
 
-                log.info(
+                self.log.info(
                     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
                     spent_coin_name.hex(),
                     tail_hash.as_python().hex(),
@@ -93,11 +135,11 @@ class CoinSpendProcessor:
                             )
                             CoinStore.persist(created_coin_record)
 
-                            log.info(
+                            self.log.info(
                                 "Persisted CAT coin created with name %s, TAIL %s, height %i",
                                 created_coin_name.hex(),
                                 tail_hash.as_python().hex(),
                                 height
                             )
             else:
-                log.debug("Found non-CAT coin spend")
+                self.log.debug("Found non-CAT coin spend")
