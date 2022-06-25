@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import socket
 from dotenv import load_dotenv
 from chia.util.config import load_config
 from chia.util.ints import uint16
