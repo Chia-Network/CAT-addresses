@@ -11,7 +11,5 @@ async def main():
 
     await cat_snapshot.generate()
 
-    # todo: generate summary and export snapshot data
-
 if __name__ == "__main__":
     asyncio.run(main())

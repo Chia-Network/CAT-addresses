@@ -56,26 +56,29 @@ class CatSnapshot:
                 break
 
             if height < peak.height:
-                block_record = await self.full_node.get_block_record_by_height(height)
-
-                self.log.debug("Got block record %s at height: %i", block_record.header_hash, height)
-
-                if block_record.timestamp is not None:
-                    self.log.debug("Processing transaction block %s", block_record.header_hash)
-
-                    coin_spends = await self.full_node.get_block_spends(block_record.header_hash)
-
-                    self.log.debug("%i spends found in block", len(coin_spends))
-
-                    self.process_coin_spends(height, block_record.header_hash, coin_spends)
-                else:
-                    self.log.debug("Skipping non-transaction block at height %i", height)
+                await self.__process_block(height)
 
                 HeightPersistance.set(height)
             else:
                 time.sleep(5)
 
-    def process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
+    async def __process_block(self, height: int):
+        block_record = await self.full_node.get_block_record_by_height(height)
+
+        self.log.debug("Got block record %s at height: %i", block_record.header_hash, height)
+
+        if block_record.timestamp is not None:
+            self.log.debug("Processing transaction block %s", block_record.header_hash)
+
+            coin_spends = await self.full_node.get_block_spends(block_record.header_hash)
+
+            self.log.debug("%i spends found in block", len(coin_spends))
+
+            self.__process_coin_spends(height, block_record.header_hash, coin_spends)
+        else:
+            self.log.debug("Skipping non-transaction block at height %i", height)
+
+    def __process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
         if coin_spends is None or len(coin_spends) == 0:
             return None
 

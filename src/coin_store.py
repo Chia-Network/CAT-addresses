@@ -1,6 +1,6 @@
 import logging
 
-from src.data.coin_record import CoinRecord
+from src.coin_record import CoinRecord
 from src.database import Database
 
 
