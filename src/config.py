@@ -20,3 +20,4 @@ class Config:
     database_path: str = database_path
     start_height: int = start_height
     target_height: int = target_height
+    rpc_retry_count: int = 10
