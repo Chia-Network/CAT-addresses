@@ -14,8 +14,6 @@ from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, matc
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_store import CoinRecord, CoinStore
 
-from src.snapshot import Snapshot
-
 
 def created_outputs_for_conditions_dict(
     conditions_dict: Dict[ConditionOpcode, List[ConditionWithArgs]],
@@ -35,7 +33,6 @@ def created_outputs_for_conditions_dict(
 class CoinSpendProcessor:
     last_heartbeat_time = time.time()
     log = logging.getLogger("CoinSpendProcessor")
-    snapshot = Snapshot("snapshot.csv")
 
     def __init__(self, coin_store: CoinStore):
         self.coin_store = coin_store
