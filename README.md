@@ -26,13 +26,13 @@ TARGET_HEIGHT=1149800
 
 First you need to install dependencies:
 
-```
+```bash
 python3 setup.py install
 ```
 
 Then setup the database:
 
-```
+```bash
 python3 setup_database.py 
 ```
 
@@ -41,3 +41,18 @@ Now you can run the snapshot generator with the following command:
 ```bash
 python3 start.py 
 ```
+
+## Queries
+
+Once you have populated the database with a snapshot you can run queries, some examples follow.
+
+### Entire balance of Spacebucks
+
+This queries the total amount of Spacebucks at the height of the snapshot.
+
+```
+sqlite> select sum(amount) from coin where tail_hash = '78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1' and spent_height = 0;
+1000000000000
+```
+
+There are 1,000 mojos to a CAT so the result of this query indicates that the total supply of Spacebucks is 1,000,000,000.
