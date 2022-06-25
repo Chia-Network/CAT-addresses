@@ -9,6 +9,7 @@ dependencies = [
     "aiohttp==3.8.1",
     "backoff==2.0.1",
     "influxdb_client==1.29.1",
+    "python-dotenv==0.20.0",
     "requests==2.28.0"
 ]
 

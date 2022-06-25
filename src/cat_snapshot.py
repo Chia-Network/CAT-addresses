@@ -72,9 +72,11 @@ class CatSnapshot:
 
             coin_spends = await self.full_node.get_block_spends(block_record.header_hash)
 
-            self.log.debug("%i spends found in block", len(coin_spends))
-
-            self.__process_coin_spends(height, block_record.header_hash, coin_spends)
+            if coin_spends is not None:
+                self.log.debug("%i spends found in block", len(coin_spends))
+                self.__process_coin_spends(height, block_record.header_hash, coin_spends)
+            else:
+                self.log.info("None at %i", height)
         else:
             self.log.debug("Skipping non-transaction block at height %i", height)
 

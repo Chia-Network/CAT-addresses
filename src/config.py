@@ -1,11 +1,14 @@
 import os
 from pathlib import Path
 import socket
-
+from dotenv import load_dotenv
 from chia.util.config import load_config
 from chia.util.ints import uint16
 
-database_path = "/root/.chia/mainnet/db/cat.db"
+
+load_dotenv()
+
+database_path = os.getenv("DB_SOURCE_DIR", "") + "cat.db"
 start_height: int = int(os.getenv("START_HEIGHT", "0"))
 target_height: int = int(os.getenv("TARGET_HEIGHT", "-1"))
 
@@ -22,7 +25,7 @@ if target_height < start_height:
 
 
 class RpcOptions:
-    hostname: str = socket.gethostname()
+    hostname: str = os.getenv("FULL_NODE_HOSTNAME", "localhost")
     port: uint16 = uint16(8555)
     chia_root: Path = Path(os.path.expanduser(os.getenv("CHIA_ROOT", "~/.chia/mainnet"))).resolve()
     config = load_config(chia_root, "config.yaml")
