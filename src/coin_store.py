@@ -8,6 +8,7 @@ class CoinRecord:
     outer_puzzle_hash: str
     amount: int
     tail_hash: str
+    spent_height: int
 
     def __init__(
         self,
@@ -15,13 +16,15 @@ class CoinRecord:
         inner_puzzle_hash: str,
         outer_puzzle_hash: str,
         amount: int,
-        tail_hash: str
+        tail_hash: str,
+        spent_height: int = 0
     ):
         self.coin_name = coin_name
         self.inner_puzzle_hash = inner_puzzle_hash
         self.outer_puzzle_hash = outer_puzzle_hash
         self.amount = amount
         self.tail_hash = tail_hash
+        self.spent_height = spent_height
 
 
 class CoinStore:
@@ -45,6 +48,7 @@ class CoinStore:
                 outer_puzzle_hash TEXT NOT NULL,
                 amount INTEGER NOT NULL,
                 tail_hash TEXT NOT NULL,
+                spent_height INTEGER DEFAULT 0,
                 PRIMARY KEY (coin_name)
             );
             """
@@ -59,16 +63,25 @@ class CoinStore:
         cursor = self.connection.cursor()
         cursor.execute(
             """
-            INSERT OR REPLACE INTO coin(coin_name, inner_puzzle_hash, outer_puzzle_hash, amount, tail_hash)
-            VALUES(?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO coin(
+                coin_name,
+                inner_puzzle_hash,
+                outer_puzzle_hash,
+                amount,
+                tail_hash,
+                spent_height
+            )
+            VALUES(?, ?, ?, ?, ?, ?)
             """,
             (
                 coin_record.coin_name,
                 coin_record.inner_puzzle_hash,
                 coin_record.outer_puzzle_hash,
                 coin_record.amount,
-                coin_record.tail_hash
+                coin_record.tail_hash,
+                coin_record.spent_height
             )
         )
         self.connection.commit()
         cursor.close()
+

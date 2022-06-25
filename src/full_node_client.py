@@ -6,14 +6,11 @@ from typing import List, Optional
 
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
-from chia.types.blockchain_format.sized_bytes import bytes32
-from chia.types.coin_record import CoinRecord
-from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
-from src.coin_store import CoinStore, CoinRecord as CR
+from chia.types.coin_spend import CoinSpend
+from src.coin_store import CoinStore
 from src.config import Config
 
 from src.height_persistance import HeightPersistance
-from src.puzzlehash_store import PuzzlehashStore
 from src.rpc_options import RpcOptions
 from src.coin_spend_processor import CoinSpendProcessor
 
@@ -26,7 +23,6 @@ backoff_logger.setLevel(logging.ERROR)
 class FullNodeClient:
     client: FullNodeRpcClient
     height_persistance: HeightPersistance
-    puzzle_hash_store: PuzzlehashStore
     coin_store: CoinStore
     log = logging.getLogger("FullNodeClient")
     rpc_options = RpcOptions()
@@ -37,12 +33,10 @@ class FullNodeClient:
         config: Config,
         coin_spend_processor: CoinSpendProcessor,
         height_persistance: HeightPersistance,
-        puzzle_hash_store: PuzzlehashStore,
         coin_store: CoinStore
     ):
         self.config = config
         self.height_persistance = height_persistance
-        self.puzzle_hash_store = puzzle_hash_store
         self.coin_store = coin_store
         self.coin_spend_processor = coin_spend_processor
         self.height_persistance.init()
@@ -71,7 +65,7 @@ class FullNodeClient:
     """
 
     @backoff.on_predicate(backoff.constant, jitter=None, interval=0)
-    async def collect_puzzle_hashes(self):
+    async def collect_coins(self):
         peak = await self.__get_peak()
         persisted_height = self.height_persistance.get()
 
@@ -97,45 +91,6 @@ class FullNodeClient:
 
         return False
 
-    @backoff.on_predicate(backoff.constant, jitter=None, interval=0)
-    async def collect_unspent_coins(self):
-        puzzle_hash_records = self.puzzle_hash_store.get(processed=0, count=3)
-
-        # All puzzle hash records have been processed
-        if len(puzzle_hash_records) == 0:
-            return True
-
-        for (inner_puzzle_hash, tail_hash) in puzzle_hash_records:
-            outer_puzzle_hash = construct_cat_puzzle(
-                CAT_MOD, bytes32.fromhex(tail_hash), bytes32.fromhex(inner_puzzle_hash)
-            ).get_tree_hash(bytes32.fromhex(inner_puzzle_hash))
-
-            coins = await self.__get_coin_records_by_puzzle_hash(outer_puzzle_hash, True)
-
-            for coin in coins:
-                # Only process coins that were not spent up to the target height
-                if coin.spent_block_index == 0 or coin.spent_block_index > self.config.target_height:
-                    coin_record = CR(
-                        coin.coin.name().hex(),
-                        inner_puzzle_hash,
-                        outer_puzzle_hash.hex(),
-                        coin.coin.amount,
-                        tail_hash
-                    )
-                    self.coin_store.persist(coin_record)
-
-                    self.log.info("Persisted coin record for coin: %s", coin_record.coin_name)
-
-            self.puzzle_hash_store.mark_processed(
-                inner_puzzle_hash,
-                tail_hash,
-                1
-            )
-
-            self.log.info("Marked processed. inner_puzzle_hash=%s tail_hash=%s", inner_puzzle_hash, tail_hash)
-
-        return False
-
     async def __process_transaction_block(self, height, header_hash):
         self.log.debug("Processing transaction block %s", header_hash)
 
@@ -155,18 +110,6 @@ class FullNodeClient:
         return await self.client.get_block_record_by_height(height)
 
     @backoff.on_exception(backoff.expo, ValueError, max_tries=10)
-    async def __get_block_spends(self, header_hash: str):
+    async def __get_block_spends(self, header_hash: str) -> Optional[List[CoinSpend]]:
         return await self.client.get_block_spends(header_hash)
 
-    @backoff.on_exception(backoff.expo, ValueError, max_tries=10)
-    async def __get_coin_records_by_puzzle_hash(
-        self,
-        puzzle_hash: bytes32,
-        include_spent_coins: bool = False
-    ) -> List[CoinRecord]:
-        return await self.client.get_coin_records_by_puzzle_hash(
-            puzzle_hash,
-            include_spent_coins,
-            start_height=self.config.start_height,
-            end_height=self.config.target_height
-        )

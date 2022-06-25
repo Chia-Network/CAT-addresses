@@ -1,17 +1,19 @@
 import logging
 import time
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.coin_spend import CoinSpend
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
 from chia.util.condition_tools import conditions_dict_for_solution
+from chia.util.hash import std_hash
 from chia.util.ints import uint64
-from chia.wallet.cat_wallet.cat_utils import match_cat_puzzle
-from clvm.casts import int_from_bytes
+from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, match_cat_puzzle
+from clvm.casts import int_from_bytes, int_to_bytes
+from src.coin_store import CoinRecord, CoinStore
 
-from src.puzzlehash_store import PuzzlehashRecord, PuzzlehashStore
 from src.snapshot import Snapshot
 
 
@@ -35,10 +37,13 @@ class CoinSpendProcessor:
     log = logging.getLogger("CoinSpendProcessor")
     snapshot = Snapshot("snapshot.csv")
 
-    def __init__(self, puzzle_hash_store: PuzzlehashStore):
-        self.puzzle_hash_store = puzzle_hash_store
+    def __init__(self, coin_store: CoinStore):
+        self.coin_store = coin_store
 
-    def process_coin_spends(self, height, header_hash: str, coin_spends, height_persistance):
+    def process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]], height_persistance):
+        if coin_spends is None or len(coin_spends) == 0:
+            return None
+
         self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
 
         for coin_spend in coin_spends:
@@ -47,29 +52,59 @@ class CoinSpendProcessor:
 
             if matched:
                 _, tail_hash, inner_puzzle = curried_args
+                spent_coin_name = coin_spend.coin.name()
 
-                coin_name = coin_spend.coin.name()
+                spent_coin_record = CoinRecord(
+                    coin_name=spent_coin_name.hex(),
+                    inner_puzzle_hash=inner_puzzle.get_tree_hash().hex(),
+                    outer_puzzle_hash=outer_puzzle.get_tree_hash().hex(),
+                    amount=coin_spend.coin.amount,
+                    tail_hash=tail_hash.as_python().hex(),
+                    spent_height=height
+                )
+                self.coin_store.persist(spent_coin_record)
+
+                self.log.info(
+                    "Persisted CAT coin spent with name %s, TAIL %s, height %i",
+                    spent_coin_name.hex(),
+                    tail_hash.as_python().hex(),
+                    height
+                )
+
                 outer_solution = coin_spend.solution.to_program()
                 inner_solution = outer_solution.first()
-
-                self.log.info("Found CAT with TAIL %s at height %i", tail_hash.as_python().hex(), height)
 
                 _, conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
 
                 if conditions is not None:
-                    create_coin_conditions = created_outputs_for_conditions_dict(conditions, coin_name)
+                    create_coin_conditions = created_outputs_for_conditions_dict(conditions, spent_coin_name)
                     if create_coin_conditions is not None:
                         for coin in create_coin_conditions:
-                            puzzle_hash_record = PuzzlehashRecord(
-                                coin.puzzle_hash.hex(),
-                                tail_hash.as_python().hex()
+                            inner_puzzle_hash = coin.puzzle_hash
+                            outer_puzzle_hash = construct_cat_puzzle(
+                                CAT_MOD,
+                                bytes32.fromhex(tail_hash.as_python().hex()),
+                                inner_puzzle_hash
+                            ).get_tree_hash(inner_puzzle_hash)
+
+                            amount = coin.amount
+                            parent_coin_info = spent_coin_name
+                            created_coin_name = std_hash(parent_coin_info + outer_puzzle_hash + int_to_bytes(amount))
+
+                            created_coin_record = CoinRecord(
+                                coin_name=created_coin_name.hex(),
+                                inner_puzzle_hash=inner_puzzle_hash.hex(),
+                                outer_puzzle_hash=outer_puzzle_hash.hex(),
+                                amount=amount,
+                                tail_hash=tail_hash.as_python().hex()
                             )
-                            self.puzzle_hash_store.persist(puzzle_hash_record)
+                            self.coin_store.persist(created_coin_record)
 
                             self.log.info(
-                                "Persisted puzzle hash record: %s %s",
-                                puzzle_hash_record.inner_puzzle_hash,
-                                puzzle_hash_record.tail_hash
+                                "Persisted CAT coin created with name %s, TAIL %s, height %i",
+                                created_coin_name.hex(),
+                                tail_hash.as_python().hex(),
+                                height
                             )
             else:
                 self.log.debug("Found non-CAT coin spend")
