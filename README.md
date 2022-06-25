@@ -24,13 +24,19 @@ TARGET_HEIGHT=1149800
 
 ## Commands
 
-First you need to setup the database with the following command:
+First you need to install dependencies:
+
+```
+python3 setup.py install
+```
+
+Then setup the database:
 
 ```
 python3 setup_database.py 
 ```
 
-Then you can run the snapshot generator with the following command:
+Now you can run the snapshot generator with the following command:
 
 ```bash
 python3 start.py 
