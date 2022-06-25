@@ -11,10 +11,10 @@ from chia.util.ints import uint64
 from chia.util.hash import std_hash
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, match_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
-from src.coin_store import CoinRecord, CoinStore
+from src.coin_record import CoinRecord
 from src.config import Config
+from src.database import get_height, persist_coin, set_height
 from src.full_node import FullNode
-from src.height_persistance import HeightPersistance
 
 
 def created_outputs_for_conditions_dict(
@@ -50,7 +50,7 @@ class CatSnapshot:
             blockchain_state = await self.full_node.get_blockchain_state()
             peak = blockchain_state["peak"]
 
-            height = HeightPersistance.get() + 1
+            height = get_height() + 1
 
             if height > Config.target_height:
                 break
@@ -58,7 +58,7 @@ class CatSnapshot:
             if height < peak.height:
                 await self.__process_block(height)
 
-                HeightPersistance.set(height)
+                set_height(height)
             else:
                 time.sleep(5)
 
@@ -100,7 +100,7 @@ class CatSnapshot:
                     tail_hash=tail_hash.as_python().hex(),
                     spent_height=height
                 )
-                CoinStore.persist(spent_coin_record)
+                persist_coin(spent_coin_record)
 
                 self.log.info(
                     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
@@ -136,7 +136,7 @@ class CatSnapshot:
                                 amount=amount,
                                 tail_hash=tail_hash.as_python().hex()
                             )
-                            CoinStore.persist(created_coin_record)
+                            persist_coin(created_coin_record)
 
                             self.log.info(
                                 "Persisted CAT coin created with name %s, TAIL %s, height %i",

@@ -1,7 +1,7 @@
 import logging
 import sys
 from src.config import Config
-from src.database import Database
+from src.database import connection
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -9,7 +9,7 @@ log = logging.getLogger('setup_database')
 
 log.info("Setting up database")
 
-cursor = Database.connection.cursor()
+cursor = connection.cursor()
 cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS metadata(
@@ -35,7 +35,7 @@ cursor.execute(
 
 cursor.execute("INSERT INTO metadata(name, value) VALUES(?, ?)", ("height", Config.start_height))
 
-Database.connection.commit()
+connection.commit()
 cursor.close()
 
 log.info("Database setup complete")
