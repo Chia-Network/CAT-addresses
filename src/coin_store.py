@@ -1,7 +1,7 @@
 import logging
-import sqlite3
 
 from src.data.coin_record import CoinRecord
+from src.database import Database
 
 
 class CoinStore:
@@ -9,14 +9,11 @@ class CoinStore:
     Stores coin records related to all CATs in a coin table.
     """
 
-    connection: sqlite3.Connection
     log = logging.getLogger("CoinStore")
 
-    def __init__(self, connection: sqlite3.Connection):
-        self.connection = connection
-
-    def init(self):
-        cursor = self.connection.cursor()
+    @staticmethod
+    def init():
+        cursor = Database.connection.cursor()
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS coin(
@@ -30,14 +27,15 @@ class CoinStore:
             );
             """
         )
-        self.connection.commit()
+        Database.connection.commit()
         cursor.close()
 
     """
     Persist to DB or throw error on failure. Do not proceed without retry if there is any error persisting data.
     """
-    def persist(self, coin_record: CoinRecord):
-        cursor = self.connection.cursor()
+    @staticmethod
+    def persist(coin_record: CoinRecord):
+        cursor = Database.connection.cursor()
         cursor.execute(
             """
             INSERT OR REPLACE INTO coin(
@@ -59,5 +57,5 @@ class CoinStore:
                 coin_record.spent_height
             )
         )
-        self.connection.commit()
+        Database.connection.commit()
         cursor.close()

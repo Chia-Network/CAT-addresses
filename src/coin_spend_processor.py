@@ -1,5 +1,4 @@
 import logging
-import time
 
 from typing import Dict, List, Optional
 from chia.types.blockchain_format.coin import Coin
@@ -13,6 +12,8 @@ from chia.util.ints import uint64
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, match_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_store import CoinRecord, CoinStore
+
+log = logging.getLogger("CoinSpendProcessor")
 
 
 def created_outputs_for_conditions_dict(
@@ -31,17 +32,12 @@ def created_outputs_for_conditions_dict(
 
 
 class CoinSpendProcessor:
-    last_heartbeat_time = time.time()
-    log = logging.getLogger("CoinSpendProcessor")
-
-    def __init__(self, coin_store: CoinStore):
-        self.coin_store = coin_store
-
-    def process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]], height_persistance):
+    @staticmethod
+    def process_coin_spends(height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
         if coin_spends is None or len(coin_spends) == 0:
             return None
 
-        self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
+        log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
 
         for coin_spend in coin_spends:
             outer_puzzle = coin_spend.puzzle_reveal.to_program()
@@ -59,9 +55,9 @@ class CoinSpendProcessor:
                     tail_hash=tail_hash.as_python().hex(),
                     spent_height=height
                 )
-                self.coin_store.persist(spent_coin_record)
+                CoinStore.persist(spent_coin_record)
 
-                self.log.info(
+                log.info(
                     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
                     spent_coin_name.hex(),
                     tail_hash.as_python().hex(),
@@ -95,13 +91,13 @@ class CoinSpendProcessor:
                                 amount=amount,
                                 tail_hash=tail_hash.as_python().hex()
                             )
-                            self.coin_store.persist(created_coin_record)
+                            CoinStore.persist(created_coin_record)
 
-                            self.log.info(
+                            log.info(
                                 "Persisted CAT coin created with name %s, TAIL %s, height %i",
                                 created_coin_name.hex(),
                                 tail_hash.as_python().hex(),
                                 height
                             )
             else:
-                self.log.debug("Found non-CAT coin spend")
+                log.debug("Found non-CAT coin spend")
