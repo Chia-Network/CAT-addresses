@@ -7,14 +7,9 @@ from chia.rpc.full_node_rpc_client import FullNodeRpcClient
 from chia.types.coin_spend import CoinSpend
 from src.config import RpcOptions
 
-backoff_logger = logging.getLogger('backoff')
-backoff_logger.addHandler(logging.StreamHandler())
-backoff_logger.setLevel(logging.ERROR)
-
-log = logging.getLogger("FullNodeClient")
-
 
 class FullNode:
+    log = logging.getLogger("FullNode")
     client: FullNodeRpcClient
 
     def __init__(self, client: FullNodeRpcClient):
@@ -34,7 +29,7 @@ class FullNode:
         max_tries=RpcOptions.retry_count
     )
     async def __startup(self):
-        log.debug("Checking node status")
+        self.log.info("Checking node status")
 
         blockchain_state = await self.get_blockchain_state()
 
@@ -43,7 +38,7 @@ class FullNode:
         if curr is None:
             raise Exception("Not ready to accept connections. Waiting for peak.")
 
-        log.debug("Node online")
+        self.log.info("Node online")
 
         return self
 
