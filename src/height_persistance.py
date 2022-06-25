@@ -1,31 +1,11 @@
 from logging import getLogger, Logger
 from typing import Union
-
-from src.config import Config
 from src.database import Database
 
 log: Logger = getLogger("HeightPersistance")
 
 
 class HeightPersistance:
-    @staticmethod
-    def init():
-        cursor = Database.connection.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS metadata(
-                name TEXT NOT NULL,
-                value INTEGER NOT NULL,
-                PRIMARY KEY (name)
-            );
-            """
-        )
-        value = HeightPersistance.get()
-        if value is None:
-            cursor.execute("INSERT INTO metadata(name, value) VALUES(?, ?)", ("height", Config.start_height))
-        Database.connection.commit()
-        cursor.close()
-
     @staticmethod
     def get() -> Union[int, None]:
         cursor = Database.connection.cursor()

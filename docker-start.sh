@@ -29,4 +29,5 @@ done
 
 echo "Node ready!"
 
+python3 setup_database.py
 python3 start.py

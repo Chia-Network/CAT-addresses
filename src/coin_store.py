@@ -11,25 +11,6 @@ class CoinStore:
 
     log = logging.getLogger("CoinStore")
 
-    @staticmethod
-    def init():
-        cursor = Database.connection.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS coin(
-                coin_name TEXT NOT NULL,
-                inner_puzzle_hash TEXT NOT NULL,
-                outer_puzzle_hash TEXT NOT NULL,
-                amount INTEGER NOT NULL,
-                tail_hash TEXT NOT NULL,
-                spent_height INTEGER DEFAULT 0,
-                PRIMARY KEY (coin_name)
-            );
-            """
-        )
-        Database.connection.commit()
-        cursor.close()
-
     """
     Persist to DB or throw error on failure. Do not proceed without retry if there is any error persisting data.
     """
