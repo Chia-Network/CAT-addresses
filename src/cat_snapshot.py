@@ -122,29 +122,27 @@ class CatSnapshot:
                     height
                 )
 
-                if inner_puzzle_create_coin_conditions is not None:
-                    for coin in inner_puzzle_create_coin_conditions:
-                        inner_puzzle_hash = coin.puzzle_hash
-                        outer_puzzle_hash = construct_cat_puzzle(
-                            CAT_MOD,
-                            tail_hash,
-                            inner_puzzle_hash
-                        ).get_tree_hash(inner_puzzle_hash)
+                for coin in inner_puzzle_create_coin_conditions:
+                    outer_puzzle_hash = construct_cat_puzzle(
+                        CAT_MOD,
+                        tail_hash,
+                        coin.puzzle_hash
+                    ).get_tree_hash(inner_puzzle_hash)
 
-                        created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
+                    created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
 
-                        created_coin_record = CoinRecord(
-                            coin_name=created_coin_name.hex(),
-                            inner_puzzle_hash=inner_puzzle_hash.hex(),
-                            outer_puzzle_hash=outer_puzzle_hash.hex(),
-                            amount=coin.amount,
-                            tail_hash=tail_hash_hex
-                        )
-                        persist_coin(created_coin_record)
+                    created_coin_record = CoinRecord(
+                        coin_name=created_coin_name.hex(),
+                        inner_puzzle_hash=coin.puzzle_hash.hex(),
+                        outer_puzzle_hash=outer_puzzle_hash.hex(),
+                        amount=coin.amount,
+                        tail_hash=tail_hash_hex
+                    )
+                    persist_coin(created_coin_record)
 
-                        self.log.info(
-                            "Persisted CAT coin created with name %s, TAIL %s, height %i",
-                            created_coin_name.hex(),
-                            tail_hash_hex,
-                            height
-                        )
+                    self.log.info(
+                        "Persisted CAT coin created with name %s, TAIL %s, height %i",
+                        created_coin_name.hex(),
+                        tail_hash_hex,
+                        height
+                    )
