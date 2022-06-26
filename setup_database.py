@@ -12,6 +12,14 @@ log.info("Setting up database")
 cursor = connection.cursor()
 cursor.execute(
     """
+    CREATE TABLE IF NOT EXISTS block(
+        height INTEGER NOT NULL,
+        PRIMARY KEY (height)
+    );
+    """
+)
+cursor.execute(
+    """
     CREATE TABLE IF NOT EXISTS metadata(
         name TEXT NOT NULL,
         value INTEGER NOT NULL,

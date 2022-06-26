@@ -51,3 +51,18 @@ def persist_coin(coin_record: CoinRecord) -> None:
     )
     connection.commit()
     cursor.close()
+
+
+def persist_cat_block_height(height: int) -> None:
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO block(
+            height
+        )
+        VALUES(?)
+        """,
+        (height,)
+    )
+    connection.commit()
+    cursor.close()
