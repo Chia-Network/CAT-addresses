@@ -10,7 +10,7 @@ from chia.util.ints import uint64
 from chia.util.hash import std_hash
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
-from cat_utils import extract_cat
+from src.cat_utils import extract_cat
 from src.coin_record import CoinRecord
 from src.config import Config
 from src.database import get_height, persist_coin, set_height
@@ -127,7 +127,7 @@ class CatSnapshot:
                         CAT_MOD,
                         tail_hash,
                         coin.puzzle_hash
-                    ).get_tree_hash(inner_puzzle_hash)
+                    ).get_tree_hash(coin.puzzle_hash)
 
                     created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
 

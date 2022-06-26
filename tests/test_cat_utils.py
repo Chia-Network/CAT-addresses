@@ -43,3 +43,16 @@ def test_extract_cat_from_cat_coin_spend():
             uint64(4200)
         )
     ]
+
+
+def test_extract_cat_from_non_cat_coin_spend():
+    parent_coin_info = bytes32.fromhex("0000000000000000000000000000000000000000000000000000000000000000")
+    coin_spend = CoinSpend(
+        Coin(parent_coin_info, Program.to([]).get_tree_hash(), uint64(4300)),
+        Program.to([]),
+        Program.to([])
+    )
+
+    result = extract_cat(coin_spend)
+
+    assert result is None
