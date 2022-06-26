@@ -88,6 +88,8 @@ class CatSnapshot:
 
         for coin_spend in coin_spends:
             outer_puzzle = coin_spend.puzzle_reveal.to_program()
+            outer_solution = coin_spend.solution.to_program()
+            inner_solution = outer_solution.first()
             result = extract_cat(coin_spend)
 
             if result is None:
@@ -98,8 +100,7 @@ class CatSnapshot:
                     outer_puzzle,
                     _,
                     inner_puzzle,
-                    _,
-                    inner_puzzle_create_coin_conditions
+                    _
                 ) = result
 
                 spent_coin_name = coin_spend.coin.name()
@@ -107,42 +108,45 @@ class CatSnapshot:
 
                 spent_coin_record = CoinRecord(
                     coin_name=spent_coin_name.hex(),
-                    inner_puzzle_hash=inner_puzzle.get_tree_hash().hex(),
-                    outer_puzzle_hash=outer_puzzle.get_tree_hash().hex(),
+                    inner_puzzle=inner_puzzle.__str__(),
+                    outer_puzzle=outer_puzzle.__str__(),
+                    inner_solution=inner_solution.__str__(),
+                    outer_solution=outer_solution.__str__(),
                     amount=coin_spend.coin.amount,
                     tail_hash=tail_hash_hex,
                     spent_height=height
                 )
+
                 persist_coin(spent_coin_record)
 
-                self.log.info(
-                    "Persisted CAT coin spent with name %s, TAIL %s, height %i",
-                    spent_coin_name.hex(),
-                    tail_hash_hex,
-                    height
-                )
+                # self.log.info(
+                #     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
+                #     spent_coin_name.hex(),
+                #     tail_hash_hex,
+                #     height
+                # )
 
-                for coin in inner_puzzle_create_coin_conditions:
-                    outer_puzzle_hash = construct_cat_puzzle(
-                        CAT_MOD,
-                        tail_hash,
-                        coin.puzzle_hash
-                    ).get_tree_hash(coin.puzzle_hash)
+                # for coin in inner_puzzle_create_coin_conditions:
+                #     outer_puzzle_hash = construct_cat_puzzle(
+                #         CAT_MOD,
+                #         tail_hash,
+                #         coin.puzzle_hash
+                #     ).get_tree_hash(coin.puzzle_hash)
 
-                    created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
+                #     created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
 
-                    created_coin_record = CoinRecord(
-                        coin_name=created_coin_name.hex(),
-                        inner_puzzle_hash=coin.puzzle_hash.hex(),
-                        outer_puzzle_hash=outer_puzzle_hash.hex(),
-                        amount=coin.amount,
-                        tail_hash=tail_hash_hex
-                    )
-                    persist_coin(created_coin_record)
+                #     created_coin_record = CoinRecord(
+                #         coin_name=created_coin_name.hex(),
+                #         inner_puzzle_hash=coin.puzzle_hash.hex(),
+                #         outer_puzzle_hash=outer_puzzle_hash.hex(),
+                #         amount=coin.amount,
+                #         tail_hash=tail_hash_hex
+                #     )
+                #     persist_coin(created_coin_record)
 
-                    self.log.info(
-                        "Persisted CAT coin created with name %s, TAIL %s, height %i",
-                        created_coin_name.hex(),
-                        tail_hash_hex,
-                        height
-                    )
+                #     self.log.info(
+                #         "Persisted CAT coin created with name %s, TAIL %s, height %i",
+                #         created_coin_name.hex(),
+                #         tail_hash_hex,
+                #         height
+                #     )

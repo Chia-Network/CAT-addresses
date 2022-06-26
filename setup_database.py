@@ -21,10 +21,12 @@ cursor.execute(
 )
 cursor.execute(
     """
-    CREATE TABLE IF NOT EXISTS coin(
+    CREATE TABLE IF NOT EXISTS coin_spend(
         coin_name TEXT NOT NULL,
-        inner_puzzle_hash TEXT NOT NULL,
-        outer_puzzle_hash TEXT NOT NULL,
+        inner_puzzle TEXT NOT NULL,
+        outer_puzzle TEXT NOT NULL,
+        inner_solution TEXT NOT NULL,
+        outer_solution TEXT NOT NULL,
         amount INTEGER NOT NULL,
         tail_hash TEXT NOT NULL,
         spent_height INTEGER DEFAULT 0,

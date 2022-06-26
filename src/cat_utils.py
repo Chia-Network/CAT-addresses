@@ -33,8 +33,7 @@ def extract_cat(coin_spend: CoinSpend) -> Union[
         Program,
         Program,
         Program,
-        Program,
-        List[Coin]
+        Program
     ]
 ]:
     outer_puzzle = coin_spend.puzzle_reveal.to_program()
@@ -47,10 +46,10 @@ def extract_cat(coin_spend: CoinSpend) -> Union[
     _, tail_hash, inner_puzzle = curried_args
     inner_solution = outer_solution.first()
 
-    _, inner_puzzle_conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
+    # _, inner_puzzle_conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
 
-    inner_puzzle_create_coin_conditions = []
-    if inner_puzzle_conditions is not None:
-        inner_puzzle_create_coin_conditions = created_outputs_for_conditions_dict(inner_puzzle_conditions, coin_spend.coin.name())
+    # inner_puzzle_create_coin_conditions = []
+    # if inner_puzzle_conditions is not None:
+    #     inner_puzzle_create_coin_conditions = created_outputs_for_conditions_dict(inner_puzzle_conditions, coin_spend.coin.name())
 
-    return tail_hash, outer_puzzle, outer_solution, inner_puzzle, inner_solution, inner_puzzle_create_coin_conditions
+    return tail_hash, outer_puzzle, outer_solution, inner_puzzle, inner_solution

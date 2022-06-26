@@ -30,20 +30,24 @@ def persist_coin(coin_record: CoinRecord) -> None:
     cursor = connection.cursor()
     cursor.execute(
         """
-        INSERT OR REPLACE INTO coin(
+        INSERT INTO coin_spend(
             coin_name,
-            inner_puzzle_hash,
-            outer_puzzle_hash,
+            inner_puzzle,
+            outer_puzzle,
+            inner_solution,
+            outer_solution,
             amount,
             tail_hash,
             spent_height
         )
-        VALUES(?, ?, ?, ?, ?, ?)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             coin_record.coin_name,
-            coin_record.inner_puzzle_hash,
-            coin_record.outer_puzzle_hash,
+            coin_record.inner_puzzle,
+            coin_record.outer_puzzle,
+            coin_record.inner_solution,
+            coin_record.outer_solution,
             coin_record.amount,
             coin_record.tail_hash,
             coin_record.spent_height
