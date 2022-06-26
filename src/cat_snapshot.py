@@ -6,11 +6,11 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
-from chia.util.condition_tools import conditions_dict_for_solution
 from chia.util.ints import uint64
 from chia.util.hash import std_hash
-from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle, match_cat_puzzle
+from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
+from cat_utils import extract_cat
 from src.coin_record import CoinRecord
 from src.config import Config
 from src.database import get_height, persist_coin, set_height
@@ -88,18 +88,29 @@ class CatSnapshot:
 
         for coin_spend in coin_spends:
             outer_puzzle = coin_spend.puzzle_reveal.to_program()
-            matched, curried_args = match_cat_puzzle(outer_puzzle)
+            result = extract_cat(coin_spend)
 
-            if matched:
-                _, tail_hash, inner_puzzle = curried_args
+            if result is None:
+                self.log.debug("Found non-CAT coin spend")
+            else:
+                (
+                    tail_hash,
+                    outer_puzzle,
+                    _,
+                    inner_puzzle,
+                    _,
+                    inner_puzzle_create_coin_conditions
+                ) = result
+
                 spent_coin_name = coin_spend.coin.name()
+                tail_hash_hex = tail_hash.as_python().hex()
 
                 spent_coin_record = CoinRecord(
                     coin_name=spent_coin_name.hex(),
                     inner_puzzle_hash=inner_puzzle.get_tree_hash().hex(),
                     outer_puzzle_hash=outer_puzzle.get_tree_hash().hex(),
                     amount=coin_spend.coin.amount,
-                    tail_hash=tail_hash.as_python().hex(),
+                    tail_hash=tail_hash_hex,
                     spent_height=height
                 )
                 persist_coin(spent_coin_record)
@@ -107,44 +118,33 @@ class CatSnapshot:
                 self.log.info(
                     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
                     spent_coin_name.hex(),
-                    tail_hash.as_python().hex(),
+                    tail_hash_hex,
                     height
                 )
 
-                outer_solution = coin_spend.solution.to_program()
-                inner_solution = outer_solution.first()
+                if inner_puzzle_create_coin_conditions is not None:
+                    for coin in inner_puzzle_create_coin_conditions:
+                        inner_puzzle_hash = coin.puzzle_hash
+                        outer_puzzle_hash = construct_cat_puzzle(
+                            CAT_MOD,
+                            tail_hash,
+                            inner_puzzle_hash
+                        ).get_tree_hash(inner_puzzle_hash)
 
-                _, conditions, _ = conditions_dict_for_solution(inner_puzzle, inner_solution, 0)
+                        created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
 
-                if conditions is not None:
-                    create_coin_conditions = created_outputs_for_conditions_dict(conditions, spent_coin_name)
-                    if create_coin_conditions is not None:
-                        for coin in create_coin_conditions:
-                            inner_puzzle_hash = coin.puzzle_hash
-                            outer_puzzle_hash = construct_cat_puzzle(
-                                CAT_MOD,
-                                bytes32.fromhex(tail_hash.as_python().hex()),
-                                inner_puzzle_hash
-                            ).get_tree_hash(inner_puzzle_hash)
+                        created_coin_record = CoinRecord(
+                            coin_name=created_coin_name.hex(),
+                            inner_puzzle_hash=inner_puzzle_hash.hex(),
+                            outer_puzzle_hash=outer_puzzle_hash.hex(),
+                            amount=coin.amount,
+                            tail_hash=tail_hash_hex
+                        )
+                        persist_coin(created_coin_record)
 
-                            amount = coin.amount
-                            parent_coin_info = spent_coin_name
-                            created_coin_name = std_hash(parent_coin_info + outer_puzzle_hash + int_to_bytes(amount))
-
-                            created_coin_record = CoinRecord(
-                                coin_name=created_coin_name.hex(),
-                                inner_puzzle_hash=inner_puzzle_hash.hex(),
-                                outer_puzzle_hash=outer_puzzle_hash.hex(),
-                                amount=amount,
-                                tail_hash=tail_hash.as_python().hex()
-                            )
-                            persist_coin(created_coin_record)
-
-                            self.log.info(
-                                "Persisted CAT coin created with name %s, TAIL %s, height %i",
-                                created_coin_name.hex(),
-                                tail_hash.as_python().hex(),
-                                height
-                            )
-            else:
-                self.log.debug("Found non-CAT coin spend")
+                        self.log.info(
+                            "Persisted CAT coin created with name %s, TAIL %s, height %i",
+                            created_coin_name.hex(),
+                            tail_hash_hex,
+                            height
+                        )
