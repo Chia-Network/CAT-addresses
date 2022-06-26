@@ -66,3 +66,15 @@ def persist_cat_block_height(height: int) -> None:
     )
     connection.commit()
     cursor.close()
+
+
+def get_next_cat_block_heights(start_height: int, limit: int):
+    cursor = connection.cursor()
+    cursor.execute("SELECT height FROM block WHERE height >= ? ORDER BY height ASC LIMIT ?", (start_height, limit))
+    output = cursor.fetchall()
+    if output is None:
+        return None
+    value = output
+    connection.commit()
+    cursor.close()
+    return value
