@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Dict, List, Optional
 from chia.types.blockchain_format.coin import Coin
+from chia.types.blockchain_format.program import Program
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.types.condition_opcodes import ConditionOpcode
@@ -10,10 +11,11 @@ from chia.util.ints import uint64
 from chia.util.hash import std_hash
 from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
-from src.cat_utils import extract_cat
-from src.coin_record import CoinRecord
+from src.coin_spend_record import CoinSpendRecord
+from src.coin_create_record import CoinCreateRecord
+from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat
 from src.config import Config
-from src.database import get_height, persist_coin, set_height
+from src.database import get_height, get_next_coin_spends, persist_coin_create, persist_coin_spend, set_height
 from src.full_node import FullNode
 
 
@@ -46,21 +48,88 @@ class CatSnapshot:
         return CatSnapshot(full_node)
 
     async def generate(self):
+        # Collect CAT coin spends
+        height = Config.start_height
         while True:
             blockchain_state = await self.full_node.get_blockchain_state()
             peak = blockchain_state["peak"]
-
-            height = get_height() + 1
 
             if height > Config.target_height:
                 break
 
             if height < peak.height:
                 await self.__process_block(height)
-
-                set_height(height)
             else:
                 time.sleep(5)
+
+            height = height + 1
+        # Extract coin create conditions from coin spends
+        # (this should be extracted later so we can perform this without needing to scan the whole chain every time)
+        height = Config.start_height
+        while True:
+            coin_spends = get_next_coin_spends(height, 100)
+
+            if len(coin_spends) == 0:
+                break
+
+            for (
+                coin_name,
+                inner_puzzle,
+                outer_puzzle,
+                inner_solution,
+                outer_solution,
+                amount,
+                tail_hash,
+                spent_height
+            ) in coin_spends:
+                self.log.info(
+                    "coin_name %s amount %i tail_hash %s spent_height %s",
+                    coin_name,
+                    amount,
+                    tail_hash,
+                    spent_height
+                )
+                inner_puzzle = Program.fromhex(inner_puzzle)
+                outer_puzzle = Program.fromhex(outer_puzzle)
+                inner_solution = Program.fromhex(inner_solution)
+                outer_solution = Program.fromhex(outer_solution)
+
+                inner_puzzle_create_coin_conditions = create_coin_conditions_for_inner_puzzle(
+                    bytes32.fromhex(coin_name),
+                    inner_puzzle,
+                    inner_solution
+                )
+
+                for coin in inner_puzzle_create_coin_conditions:
+                    outer_puzzle_hash = construct_cat_puzzle(
+                        CAT_MOD,
+                        bytes32.fromhex(tail_hash),
+                        coin.puzzle_hash
+                    ).get_tree_hash(coin.puzzle_hash)
+
+                    created_coin_name = std_hash(bytes32.fromhex(coin_name) + outer_puzzle_hash + int_to_bytes(coin.amount)).hex()
+
+                    coin_create_record = CoinCreateRecord(
+                        coin_name=created_coin_name,
+                        inner_puzzle_hash=coin.puzzle_hash.hex(),
+                        outer_puzzle_hash=outer_puzzle_hash.hex(),
+                        amount=coin.amount,
+                        tail_hash=tail_hash,
+                        created_height=spent_height
+                    )
+
+                    persist_coin_create(coin_create_record)
+
+                    self.log.info(
+                        "Persisted CAT coin created with name %s, TAIL %s, height %i",
+                        created_coin_name,
+                        tail_hash,
+                        spent_height
+                    )
+
+                    # todo: implement some kind of persistance for retry after crash, or not bother and require a clean run each time
+
+                    height = spent_height + 1
 
     async def __process_block(self, height: int):
         block_record = await self.full_node.get_block_record_by_height(height)
@@ -106,7 +175,7 @@ class CatSnapshot:
                 spent_coin_name = coin_spend.coin.name()
                 tail_hash_hex = tail_hash.as_python().hex()
 
-                spent_coin_record = CoinRecord(
+                spent_coin_record = CoinSpendRecord(
                     coin_name=spent_coin_name.hex(),
                     inner_puzzle=inner_puzzle.__str__(),
                     outer_puzzle=outer_puzzle.__str__(),
@@ -117,7 +186,7 @@ class CatSnapshot:
                     spent_height=height
                 )
 
-                persist_coin(spent_coin_record)
+                persist_coin_spend(spent_coin_record)
 
                 # self.log.info(
                 #     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
@@ -142,7 +211,7 @@ class CatSnapshot:
                 #         amount=coin.amount,
                 #         tail_hash=tail_hash_hex
                 #     )
-                #     persist_coin(created_coin_record)
+                #     persist_coin_spend(created_coin_record)
 
                 #     self.log.info(
                 #         "Persisted CAT coin created with name %s, TAIL %s, height %i",

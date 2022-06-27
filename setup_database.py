@@ -12,15 +12,6 @@ log.info("Setting up database")
 cursor = connection.cursor()
 cursor.execute(
     """
-    CREATE TABLE IF NOT EXISTS metadata(
-        name TEXT NOT NULL,
-        value INTEGER NOT NULL,
-        PRIMARY KEY (name)
-    );
-    """
-)
-cursor.execute(
-    """
     CREATE TABLE IF NOT EXISTS coin_spend(
         coin_name TEXT NOT NULL,
         inner_puzzle TEXT NOT NULL,
@@ -34,8 +25,19 @@ cursor.execute(
     );
     """
 )
-
-cursor.execute("INSERT INTO metadata(name, value) VALUES(?, ?)", ("height", Config.start_height))
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS coin_create(
+        coin_name TEXT NOT NULL,
+        inner_puzzle_hash TEXT NOT NULL,
+        outer_puzzle_hash TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        tail_hash TEXT NOT NULL,
+        created_height INTEGER DEFAULT 0,
+        PRIMARY KEY (coin_name)
+    );
+    """
+)
 
 connection.commit()
 cursor.close()

@@ -1,4 +1,4 @@
-class CoinRecord:
+class CoinSpendRecord:
     coin_name: str
     inner_puzzle: str
     outer_puzzle: str
@@ -17,7 +17,7 @@ class CoinRecord:
         outer_solution: str,
         amount: int,
         tail_hash: str,
-        spent_height: int = 0
+        spent_height: int
     ):
         self.coin_name = coin_name
         self.inner_puzzle = inner_puzzle
