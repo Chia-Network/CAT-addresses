@@ -51,7 +51,7 @@ Once you have populated the database with a snapshot you can run queries, some e
 This queries the total amount of Spacebucks at the height of the snapshot.
 
 ```
-sqlite> select sum(amount) from coin where tail_hash = '78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1' and spent_height = 0;
+sqlite> select sum(coin_create.amount) from coin_create left join coin_spend on coin_create.coin_name = coin_spend.coin_name where coin_create.tail_hash = '78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1' and coin_spend.coin_name is null;
 1000000000000
 ```
 
