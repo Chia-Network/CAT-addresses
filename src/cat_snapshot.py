@@ -15,7 +15,7 @@ from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
 from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat
 from src.config import Config
-from src.database import get_height, get_next_coin_spends, persist_coin_create, persist_coin_spend, set_height
+from src.database import get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
 
 
@@ -51,20 +51,13 @@ class CatSnapshot:
         # Collect CAT coin spends
         height = Config.start_height
         while True:
-            blockchain_state = await self.full_node.get_blockchain_state()
-            peak = blockchain_state["peak"]
-
             if height > Config.target_height:
                 break
 
-            if height < peak.height:
-                await self.__process_block(height)
-            else:
-                time.sleep(5)
+            await self.__process_block(height)
 
             height = height + 1
         # Extract coin create conditions from coin spends
-        # (this should be extracted later so we can perform this without needing to scan the whole chain every time)
         height = Config.start_height
         while True:
             coin_spends = get_next_coin_spends(height, 100)
@@ -127,9 +120,8 @@ class CatSnapshot:
                         spent_height
                     )
 
-                    # todo: implement some kind of persistance for retry after crash, or not bother and require a clean run each time
-
-                    height = spent_height + 1
+            (_, _, _, _, _, _, _, last_spent_height) = coin_spends[-1]
+            height = last_spent_height + 1
 
     async def __process_block(self, height: int):
         block_record = await self.full_node.get_block_record_by_height(height)
