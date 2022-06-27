@@ -58,14 +58,15 @@ class CatSnapshot:
 
             height = height + 1
         # Extract coin create conditions from coin spends
-        height = Config.start_height
+        id = 0
         while True:
-            coin_spends = get_next_coin_spends(height, 100)
+            coin_spends = get_next_coin_spends(id, 100)
 
             if len(coin_spends) == 0:
                 break
 
             for (
+                id,
                 coin_name,
                 inner_puzzle,
                 outer_puzzle,
@@ -102,7 +103,9 @@ class CatSnapshot:
                         coin.puzzle_hash
                     ).get_tree_hash(coin.puzzle_hash)
 
-                    created_coin_name = std_hash(bytes32.fromhex(coin_name) + outer_puzzle_hash + int_to_bytes(coin.amount)).hex()
+                    created_coin_name = std_hash(
+                        bytes32.fromhex(coin_name) + outer_puzzle_hash + int_to_bytes(coin.amount)
+                    ).hex()
 
                     coin_create_record = CoinCreateRecord(
                         coin_name=created_coin_name,
@@ -111,7 +114,7 @@ class CatSnapshot:
                         amount=coin.amount,
                         tail_hash=tail_hash,
                         created_height=spent_height
-                    )
+                    ) 
 
                     persist_coin_create(cursor, coin_create_record)
 
@@ -125,8 +128,7 @@ class CatSnapshot:
                 connection.commit()
                 cursor.close()
 
-            (_, _, _, _, _, _, _, last_spent_height) = coin_spends[-1]
-            height = last_spent_height + 1
+            id = id + 1
 
     async def __process_block(self, height: int):
         block_record = await self.full_node.get_block_record_by_height(height)
@@ -155,14 +157,14 @@ class CatSnapshot:
         cursor = connection.cursor()
 
         for coin_spend in coin_spends:
-            outer_puzzle = coin_spend.puzzle_reveal.to_program()
-            outer_solution = coin_spend.solution.to_program()
-            inner_solution = outer_solution.first()
             result = extract_cat(coin_spend)
 
             if result is None:
                 self.log.debug("Found non-CAT coin spend")
             else:
+                outer_puzzle = coin_spend.puzzle_reveal.to_program()
+                outer_solution = coin_spend.solution.to_program()
+                inner_solution = outer_solution.first()
                 (
                     tail_hash,
                     outer_puzzle,
@@ -171,17 +173,14 @@ class CatSnapshot:
                     _
                 ) = result
 
-                spent_coin_name = coin_spend.coin.name()
-                tail_hash_hex = tail_hash.as_python().hex()
-
                 spent_coin_record = CoinSpendRecord(
-                    coin_name=spent_coin_name.hex(),
+                    coin_name=coin_spend.coin.name().hex(),
                     inner_puzzle=inner_puzzle.__str__(),
                     outer_puzzle=outer_puzzle.__str__(),
                     inner_solution=inner_solution.__str__(),
                     outer_solution=outer_solution.__str__(),
                     amount=coin_spend.coin.amount,
-                    tail_hash=tail_hash_hex,
+                    tail_hash=tail_hash.as_python().hex(),
                     spent_height=height
                 )
 

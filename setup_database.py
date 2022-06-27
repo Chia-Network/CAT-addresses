@@ -13,6 +13,7 @@ cursor = connection.cursor()
 cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS coin_spend(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         coin_name TEXT NOT NULL,
         inner_puzzle TEXT NOT NULL,
         outer_puzzle TEXT NOT NULL,
@@ -20,8 +21,7 @@ cursor.execute(
         outer_solution TEXT NOT NULL,
         amount INTEGER NOT NULL,
         tail_hash TEXT NOT NULL,
-        spent_height INTEGER DEFAULT 0,
-        PRIMARY KEY (coin_name)
+        spent_height INTEGER DEFAULT 0
     );
     """
 )

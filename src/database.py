@@ -37,11 +37,11 @@ def persist_coin_spend(cursor: Cursor, coin_spend_record: CoinSpendRecord) -> No
     )
 
 
-def get_next_coin_spends(start_height: int, limit: int):
+def get_next_coin_spends(id: int, limit: int):
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT * FROM coin_spend WHERE spent_height >= ? ORDER BY spent_height ASC LIMIT ?",
-        (start_height, limit)
+        "SELECT * FROM coin_spend WHERE id >= ? ORDER BY id ASC LIMIT ?",
+        (id, limit)
     )
     output = cursor.fetchall()
     if output is None:
