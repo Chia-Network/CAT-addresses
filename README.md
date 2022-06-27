@@ -6,7 +6,6 @@ Generates a snapshot of all CAT coins at a target block height.
 
 Environment variables should be passed to configure the behavior of the tool:
 
-* `TESTNET` - Whether to run against testnet or mainnet. true=testnet, false=mainnet
 * `FULL_NODE_HOSTNAME` - Hostname of full node to call RPCs against
 * `DB_SOURCE_DIR` - Location of full node database on host machine
 * `START_HEIGHT` - The height of the blockchain to start creating the snapshot from (default: `0`)
@@ -15,7 +14,6 @@ Environment variables should be passed to configure the behavior of the tool:
 These can be set by creating a `.env` file in the root of this project. Example:
 
 ```
-TESTNET=false
 FULL_NODE_HOSTNAME=localhost
 DB_SOURCE_DIR=/home/freddie/chia-mount/db/
 START_HEIGHT=1146800
