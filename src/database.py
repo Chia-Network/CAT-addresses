@@ -1,5 +1,6 @@
 import sqlite3
-from typing import Union
+
+from sqlite3 import Cursor
 from src.coin_create_record import CoinCreateRecord
 from src.coin_spend_record import CoinSpendRecord
 from src.config import Config
@@ -8,8 +9,7 @@ from src.config import Config
 connection: sqlite3.Connection = sqlite3.connect(Config.database_path)
 
 
-def persist_coin_spend(coin_spend_record: CoinSpendRecord) -> None:
-    cursor = connection.cursor()
+def persist_coin_spend(cursor: Cursor, coin_spend_record: CoinSpendRecord) -> None:
     cursor.execute(
         """
         INSERT INTO coin_spend(
@@ -35,8 +35,6 @@ def persist_coin_spend(coin_spend_record: CoinSpendRecord) -> None:
             coin_spend_record.spent_height
         )
     )
-    connection.commit()
-    cursor.close()
 
 
 def get_next_coin_spends(start_height: int, limit: int):
@@ -54,8 +52,7 @@ def get_next_coin_spends(start_height: int, limit: int):
     return value
 
 
-def persist_coin_create(coin_create_record: CoinCreateRecord) -> None:
-    cursor = connection.cursor()
+def persist_coin_create(cursor: Cursor, coin_create_record: CoinCreateRecord) -> None:
     cursor.execute(
         """
         INSERT INTO coin_create(
@@ -77,5 +74,3 @@ def persist_coin_create(coin_create_record: CoinCreateRecord) -> None:
             coin_create_record.created_height
         )
     )
-    connection.commit()
-    cursor.close()

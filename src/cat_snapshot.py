@@ -15,7 +15,7 @@ from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
 from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat
 from src.config import Config
-from src.database import get_next_coin_spends, persist_coin_create, persist_coin_spend
+from src.database import connection, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
 
 
@@ -93,6 +93,8 @@ class CatSnapshot:
                     inner_solution
                 )
 
+                cursor = connection.cursor()
+
                 for coin in inner_puzzle_create_coin_conditions:
                     outer_puzzle_hash = construct_cat_puzzle(
                         CAT_MOD,
@@ -111,7 +113,7 @@ class CatSnapshot:
                         created_height=spent_height
                     )
 
-                    persist_coin_create(coin_create_record)
+                    persist_coin_create(cursor, coin_create_record)
 
                     self.log.info(
                         "Persisted CAT coin created with name %s, TAIL %s, height %i",
@@ -119,6 +121,9 @@ class CatSnapshot:
                         tail_hash,
                         spent_height
                     )
+
+                connection.commit()
+                cursor.close()
 
             (_, _, _, _, _, _, _, last_spent_height) = coin_spends[-1]
             height = last_spent_height + 1
@@ -146,6 +151,8 @@ class CatSnapshot:
             return None
 
         self.log.info("Processing %i coin spends for block %s at height %i", len(coin_spends), header_hash, height)
+
+        cursor = connection.cursor()
 
         for coin_spend in coin_spends:
             outer_puzzle = coin_spend.puzzle_reveal.to_program()
@@ -178,36 +185,7 @@ class CatSnapshot:
                     spent_height=height
                 )
 
-                persist_coin_spend(spent_coin_record)
+                persist_coin_spend(cursor, spent_coin_record)
 
-                # self.log.info(
-                #     "Persisted CAT coin spent with name %s, TAIL %s, height %i",
-                #     spent_coin_name.hex(),
-                #     tail_hash_hex,
-                #     height
-                # )
-
-                # for coin in inner_puzzle_create_coin_conditions:
-                #     outer_puzzle_hash = construct_cat_puzzle(
-                #         CAT_MOD,
-                #         tail_hash,
-                #         coin.puzzle_hash
-                #     ).get_tree_hash(coin.puzzle_hash)
-
-                #     created_coin_name = std_hash(spent_coin_name + outer_puzzle_hash + int_to_bytes(coin.amount))
-
-                #     created_coin_record = CoinRecord(
-                #         coin_name=created_coin_name.hex(),
-                #         inner_puzzle_hash=coin.puzzle_hash.hex(),
-                #         outer_puzzle_hash=outer_puzzle_hash.hex(),
-                #         amount=coin.amount,
-                #         tail_hash=tail_hash_hex
-                #     )
-                #     persist_coin_spend(created_coin_record)
-
-                #     self.log.info(
-                #         "Persisted CAT coin created with name %s, TAIL %s, height %i",
-                #         created_coin_name.hex(),
-                #         tail_hash_hex,
-                #         height
-                #     )
+        connection.commit()
+        cursor.close()
