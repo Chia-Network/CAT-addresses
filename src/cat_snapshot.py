@@ -58,7 +58,7 @@ class CatSnapshot:
 
             height = height + 1
         # Extract coin create conditions from coin spends
-        id = 0
+        id = Config.start_height
         while True:
             coin_spends = get_next_coin_spends(id, 100)
 
