@@ -37,6 +37,21 @@ def persist_coin_spend(cursor: Cursor, coin_spend_record: CoinSpendRecord) -> No
     )
 
 
+def get_initial_id(height: int):
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id FROM coin_spend WHERE spent_height >= ? ORDER BY id ASC LIMIT 1",
+        [height]
+    )
+    output = cursor.fetchone()
+    if output is None:
+        return 0
+    value = output[0]
+    connection.commit()
+    cursor.close()
+    return value
+
+
 def get_next_coin_spends(id: int, limit: int):
     cursor = connection.cursor()
     cursor.execute(

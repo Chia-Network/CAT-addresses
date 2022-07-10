@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Dict, List, Optional
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
@@ -15,7 +14,7 @@ from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
 from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat
 from src.config import Config
-from src.database import connection, get_next_coin_spends, persist_coin_create, persist_coin_spend
+from src.database import connection, get_initial_id, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
 
 
@@ -58,7 +57,7 @@ class CatSnapshot:
 
             height = height + 1
         # Extract coin create conditions from coin spends
-        id = Config.start_height
+        id = get_initial_id(Config.start_height)
         while True:
             coin_spends = get_next_coin_spends(id, 100)
 
