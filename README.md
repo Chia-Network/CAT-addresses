@@ -52,6 +52,12 @@ To generate a CSV containing all Spacebucks inner puzzle hashes and amounts:
 python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --tail-hash 78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1
 ```
 
+To get individual coins:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --tail-hash 78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1 --coins
+```
+
 ### Balance of all CATs in one file
 
 To generate a CSV containing all CATs TAIL hashes, inner puzzle hashes and amounts:
@@ -60,12 +66,24 @@ To generate a CSV containing all CATs TAIL hashes, inner puzzle hashes and amoun
 python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/
 ```
 
+To get individual coins:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --coins
+```
+
 ### Balance of all CATs in seperate files
 
 To generate multiple CSVs with each containing a specific CATs inner puzzle hashes and amounts:
 
 ```
 python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --explode
+```
+
+To get individual coins:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --explode --coins
 ```
 
 ### Data cleanup

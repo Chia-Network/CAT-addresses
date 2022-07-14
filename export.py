@@ -12,11 +12,15 @@ from src.database import get_all_cat_balances, get_cat_balance
 Runs SQL queries and export as CSV.
 """
 
-def seperate_by_tail_hash(rows: List[any]):
+def seperate_by_tail_hash(rows: List[any], coins: bool):
     tail_data = defaultdict(list)
 
-    for (tail_hash, inner_puzzle_hash, amount) in rows:
-        tail_data[str(tail_hash)].append((str(inner_puzzle_hash), int(amount)))
+    if coins:
+        for (tail_hash, coin_name, inner_puzzle_hash, amount) in rows:
+            tail_data[tail_hash].append((coin_name, inner_puzzle_hash, amount))
+    else:
+        for (tail_hash, inner_puzzle_hash, amount) in rows:
+            tail_data[tail_hash].append((inner_puzzle_hash, amount))
 
     return tail_data
 
@@ -43,11 +47,20 @@ def seperate_by_tail_hash(rows: List[any]):
     required=True,
     help="Directory to write CSV output",
 )
+@click.option(
+    "-c",
+    "--coins",
+    required=True,
+    is_flag=True,
+    default=False,
+    help="Show individual coins in output rather than collapsing on puzzle hash",
+)
 def cli(
     ctx: click.Context,
     tail_hash: str,
     explode: bool,
-    output_dir: str
+    output_dir: str,
+    coins: bool
 ):
     ctx.ensure_object(dict)
     now = datetime.now()
@@ -56,14 +69,14 @@ def cli(
 
     if tail_hash:
         # Run export for specific CAT
-        data = get_cat_balance(tail_hash)
+        data = get_cat_balance(tail_hash, coins)
         file_name = f"{tail_hash}." + file_name
     else:
-        data = get_all_cat_balances()
+        data = get_all_cat_balances(coins)
         file_name = "all." + file_name
     
     if explode:
-        tail_data = seperate_by_tail_hash(data)
+        tail_data = seperate_by_tail_hash(data, coins)
 
         for (tail_hash, rows) in tail_data.items():
             with open(output_dir + f"{tail_hash}" + f".{file_name}", 'w') as f:

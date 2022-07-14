@@ -101,17 +101,26 @@ def get_distinct_tail_hashes():
     cursor.close()
     return value
 
-def get_all_cat_balances():
+def get_all_cat_balances(coins: bool):
     cursor = connection.cursor()
-    # Must group by outer puzzle hash so amounts of inner puzzle hashes for different CATs don't get summed
-    cursor.execute(
-        """
-        SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
-        LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
-        WHERE coin_spend.coin_name IS null
-        GROUP BY coin_create.outer_puzzle_hash
-        """
-    )
+    if coins:
+        cursor.execute(
+            """
+            SELECT coin_create.tail_hash, coin_create.coin_name, coin_create.inner_puzzle_hash, coin_create.amount FROM coin_create
+            LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+            WHERE coin_spend.coin_name IS null
+            """
+        )
+    else:
+        # Must group by outer puzzle hash so amounts of inner puzzle hashes for different CATs don't get summed
+        cursor.execute(
+            """
+            SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
+            LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+            WHERE coin_spend.coin_name IS null
+            GROUP BY coin_create.outer_puzzle_hash
+            """
+        )
     output = cursor.fetchall()
     if output is None:
         return None
@@ -120,17 +129,27 @@ def get_all_cat_balances():
     cursor.close()
     return value
 
-def get_cat_balance(tail_hash: str):
+def get_cat_balance(tail_hash: str, coins: bool):
     cursor = connection.cursor()
-    cursor.execute(
-        """
-        SELECT coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
-        LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
-        WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
-        GROUP BY coin_create.inner_puzzle_hash
-        """,
-        [tail_hash]
-    )
+    if coins:
+        cursor.execute(
+            """
+            SELECT coin_create.coin_name, coin_create.inner_puzzle_hash, coin_create.amount FROM coin_create
+            LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+            WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
+            """,
+            [tail_hash]
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
+            LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+            WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
+            GROUP BY coin_create.inner_puzzle_hash
+            """,
+            [tail_hash]
+        )
     output = cursor.fetchall()
     if output is None:
         return None
