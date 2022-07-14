@@ -51,23 +51,26 @@ def cli(
 ):
     ctx.ensure_object(dict)
     now = datetime.now()
+    file_name = f"{now.timestamp()}.csv"
     data = None
 
     if tail_hash:
         # Run export for specific CAT
         data = get_cat_balance(tail_hash)
+        file_name = f"{tail_hash}." + file_name
     else:
         data = get_all_cat_balances()
+        file_name = "all." + file_name
     
     if explode:
         tail_data = seperate_by_tail_hash(data)
 
         for (tail_hash, rows) in tail_data.items():
-            with open(output_dir + f"/{tail_hash}" + f".{now.timestamp()}.csv", 'w') as f:
+            with open(output_dir + f"{tail_hash}" + f".{file_name}", 'w') as f:
                 writer = csv.writer(f)
                 writer.writerows(rows)
     else:
-        with open(output_dir + f"/all.{now.timestamp()}.csv", 'w') as f:
+        with open(output_dir + file_name, 'w') as f:
             writer = csv.writer(f)
             writer.writerows(data)
 

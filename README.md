@@ -42,15 +42,28 @@ python3 start.py
 
 ## Queries
 
-Once you have populated the database with a snapshot you can run queries, some examples follow.
+Once you have populated the database with a snapshot you can run a data export with the following commands.
 
-### Entire balance of Spacebucks
+### Balance of Spacebucks
 
-This queries the total amount of Spacebucks at the height of the snapshot.
+To generate a CSV containing all Spacebucks inner puzzle hashes and amounts:
 
 ```
-sqlite> select sum(coin_create.amount) from coin_create left join coin_spend on coin_create.coin_name = coin_spend.coin_name where coin_create.tail_hash = '78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1' and coin_spend.coin_name is null;
-1000000000000
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --tail-hash 78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1
 ```
 
-There are 1,000 mojos to a CAT so the result of this query indicates that the total supply of Spacebucks is 1,000,000,000.
+### Balance of all CATs in one file
+
+To generate a CSV containing all CATs TAIL hashes, inner puzzle hashes and amounts:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/
+```
+
+### Balance of all CATs in seperate files
+
+To generate multiple CSVs with each containing a specific CATs inner puzzle hashes and amounts:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --explode
+```
