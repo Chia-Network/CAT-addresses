@@ -109,16 +109,18 @@ def get_all_cat_balances(coins: bool):
             SELECT coin_create.tail_hash, coin_create.coin_name, coin_create.inner_puzzle_hash, coin_create.amount FROM coin_create
             LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
             WHERE coin_spend.coin_name IS null
+            ORDER BY coin_create.created_height ASC
             """
         )
     else:
         # Must group by outer puzzle hash so amounts of inner puzzle hashes for different CATs don't get summed
         cursor.execute(
             """
-            SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
+            SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, SUM(coin_create.amount) FROM coin_create
             LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
             WHERE coin_spend.coin_name IS null
             GROUP BY coin_create.outer_puzzle_hash
+            ORDER BY MIN(coin_create.created_height) ASC
             """
         )
     output = cursor.fetchall()
@@ -137,6 +139,7 @@ def get_cat_balance(tail_hash: str, coins: bool):
             SELECT coin_create.coin_name, coin_create.inner_puzzle_hash, coin_create.amount FROM coin_create
             LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
             WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
+            ORDER BY coin_create.created_height ASC
             """,
             [tail_hash]
         )
@@ -147,6 +150,7 @@ def get_cat_balance(tail_hash: str, coins: bool):
             LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
             WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
             GROUP BY coin_create.inner_puzzle_hash
+            ORDER BY MIN(coin_create.created_height) ASC
             """,
             [tail_hash]
         )
