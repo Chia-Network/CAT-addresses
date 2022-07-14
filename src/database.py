@@ -103,12 +103,13 @@ def get_distinct_tail_hashes():
 
 def get_all_cat_balances():
     cursor = connection.cursor()
+    # Must group by outer puzzle hash so amounts of inner puzzle hashes for different CATs don't get summed
     cursor.execute(
         """
         SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
         LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
         WHERE coin_spend.coin_name IS null
-        GROUP BY coin_create.inner_puzzle_hash
+        GROUP BY coin_create.outer_puzzle_hash
         """
     )
     output = cursor.fetchall()

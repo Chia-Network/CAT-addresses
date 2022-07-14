@@ -134,3 +134,4 @@ dmypy.json
 /k8s/values/*.yaml
 
 *.csv*
+results
