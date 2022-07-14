@@ -40,7 +40,7 @@ Now you can run the snapshot generator with the following command:
 python3 start.py 
 ```
 
-## Queries
+## Data export
 
 Once you have populated the database with a snapshot you can run a data export with the following commands.
 
