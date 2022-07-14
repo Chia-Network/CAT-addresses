@@ -67,3 +67,15 @@ To generate multiple CSVs with each containing a specific CATs inner puzzle hash
 ```
 python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --explode
 ```
+
+### Data cleanup
+
+Data cleanup should only be required if the application exits half-way through a run meaning it only imports some blocks at a particular height.
+
+This could happen if the computer crashes or there is a power cut.
+
+The command will delete records from the database at and above a provided height.
+
+```
+python3 clean.py --height 2232000
+```

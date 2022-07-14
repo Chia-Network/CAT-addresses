@@ -138,3 +138,21 @@ def get_cat_balance(tail_hash: str):
     connection.commit()
     cursor.close()
     return value
+
+def delete_coins_above(height: int):
+    cursor = connection.cursor()
+    cursor.execute(
+        "DELETE FROM coin_create WHERE created_height >= ?",
+        [height]
+    )
+    cursor.execute(
+        "DELETE FROM coin_spend WHERE spent_height >= ?",
+        [height]
+    )
+    output = cursor.fetchall()
+    if output is None:
+        return None
+    value = output
+    connection.commit()
+    cursor.close()
+    return value
