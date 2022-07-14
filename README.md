@@ -97,3 +97,13 @@ The command will delete records from the database at and above a provided height
 ```
 python3 clean.py --height 2232000
 ```
+
+## Secure the bag with CAT-admin-tool
+
+If you want to feed data into the CAT-admin-tool for use with Secure the bag you should run the following command:
+
+```
+python3 export.py --output-dir /Users/freddiecoleman/code/CAT-addresses/results/ --tail-hash 78ad32a8c9ea70f27d73e9306fc467bab2a6b15b30289791e37ab6e8612212b1
+```
+
+The order of this data is important so don't change it. This is because your wallet will increase the range of keys used for puzzle hash discovery as puzzle hashes at greater offsets come in. If you import data in a different order you may need to change your config to increase the range of keys that your wallet is checking.
