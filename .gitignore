@@ -132,3 +132,5 @@ dmypy.json
 .vscode/
 
 /k8s/values/*.yaml
+
+*.csv*

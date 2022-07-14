@@ -89,3 +89,51 @@ def persist_coin_create(cursor: Cursor, coin_create_record: CoinCreateRecord) ->
             coin_create_record.created_height
         )
     )
+
+def get_distinct_tail_hashes():
+    cursor = connection.cursor()
+    cursor.execute("SELECT DISTINCT tail_hash FROM coin_create")
+    output = cursor.fetchall()
+    if output is None:
+        return None
+    value = output
+    connection.commit()
+    cursor.close()
+    return value
+
+def get_all_cat_balances():
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT coin_create.tail_hash, coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
+        LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+        WHERE coin_spend.coin_name IS null
+        GROUP BY coin_create.inner_puzzle_hash
+        """
+    )
+    output = cursor.fetchall()
+    if output is None:
+        return None
+    value = output
+    connection.commit()
+    cursor.close()
+    return value
+
+def get_cat_balance(tail_hash: str):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT coin_create.inner_puzzle_hash, sum(coin_create.amount) FROM coin_create
+        LEFT JOIN coin_spend ON coin_create.coin_name = coin_spend.coin_name
+        WHERE coin_create.tail_hash = ? AND coin_spend.coin_name IS null
+        GROUP BY coin_create.inner_puzzle_hash
+        """,
+        [tail_hash]
+    )
+    output = cursor.fetchall()
+    if output is None:
+        return None
+    value = output
+    connection.commit()
+    cursor.close()
+    return value
