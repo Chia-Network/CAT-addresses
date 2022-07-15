@@ -22,6 +22,9 @@ class FullNode:
         )
 
         return await FullNode(client).__startup()
+    
+    def close(self):
+        self.client.close()
 
     @backoff.on_exception(
         backoff.expo,

@@ -62,6 +62,7 @@ class CatSnapshot:
             self.log.warn("No new coin spends were discovered by this scan")
 
             connection.close()
+            self.full_node.close()
 
             return None
         while True:
@@ -134,6 +135,8 @@ class CatSnapshot:
                 cursor.close()
 
             id = id + 1
+        
+        self.full_node.close()
 
     async def __process_block(self, height: int):
         block_record = await self.full_node.get_block_record_by_height(height)
