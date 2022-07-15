@@ -45,7 +45,7 @@ def get_initial_id(height: int):
     )
     output = cursor.fetchone()
     if output is None:
-        return 0
+        return None
     value = output[0]
     connection.commit()
     cursor.close()

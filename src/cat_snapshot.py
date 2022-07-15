@@ -58,6 +58,12 @@ class CatSnapshot:
             height = height + 1
         # Extract coin create conditions from coin spends
         id = get_initial_id(Config.start_height)
+        if id is None:
+            self.log.warn("No new coin spends were discovered by this scan")
+
+            connection.close()
+
+            return None
         while True:
             coin_spends = get_next_coin_spends(id, 100)
 
@@ -140,12 +146,12 @@ class CatSnapshot:
             coin_spends = await self.full_node.get_block_spends(block_record.header_hash)
 
             if coin_spends is not None:
-                self.log.debug("%i spends found in block", len(coin_spends))
+                self.log.info("%i spends found in block", len(coin_spends))
                 self.__process_coin_spends(height, block_record.header_hash, coin_spends)
             else:
                 self.log.info("None at %i", height)
         else:
-            self.log.debug("Skipping non-transaction block at height %i", height)
+            self.log.info("Skipping non-transaction block at height %i", height)
 
     def __process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
         if coin_spends is None or len(coin_spends) == 0:
