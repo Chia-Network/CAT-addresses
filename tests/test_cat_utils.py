@@ -3,7 +3,7 @@ from chia.types.blockchain_format.program import Program
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.util.ints import uint64
-from src.cat_utils import extract_cat
+from src.cat_utils import extract_cat1
 
 
 def test_extract_cat_from_cat_coin_spend():
@@ -25,7 +25,7 @@ def test_extract_cat_from_cat_coin_spend():
         inner_puzzle,
         inner_solution,
         create_coin_conditions
-    ) = extract_cat(coin_spend)
+    ) = extract_cat1(coin_spend)
 
     assert tail_hash == bytes32.fromhex("0f1804d8aa3899a03790000563deaca1d894ed0ab382d672660a8f251b0f4e9c")
     assert outer_puzzle == cat_outer_puzzle
@@ -53,6 +53,6 @@ def test_extract_cat_from_non_cat_coin_spend():
         Program.to([])
     )
 
-    result = extract_cat(coin_spend)
+    result = extract_cat1(coin_spend)
 
     assert result is None

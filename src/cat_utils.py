@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterator, List, Tuple, Union
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.blockchain_format.program import Program
@@ -7,8 +7,19 @@ from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
 from chia.util.condition_tools import conditions_dict_for_solution
 from chia.util.ints import uint64
-from chia.wallet.cat_wallet.cat_utils import match_cat_puzzle
 from clvm.casts import int_from_bytes
+
+from src.puzzles.cat_loader import CAT1_MOD
+
+def match_cat1_puzzle(puzzle: Program) -> Tuple[bool, Iterator[Program]]:
+    """
+    Given a puzzle test if it's a CAT and, if it is, return the curried arguments
+    """
+    mod, curried_args = puzzle.uncurry()
+    if mod == CAT1_MOD:
+        return True, curried_args.as_iter()
+    else:
+        return False, iter(())
 
 
 def created_outputs_for_conditions_dict(
@@ -26,7 +37,7 @@ def created_outputs_for_conditions_dict(
     return output_coins
 
 
-def extract_cat(coin_spend: CoinSpend) -> Union[
+def extract_cat1(coin_spend: CoinSpend) -> Union[
     None,
     Tuple[
         Program,
@@ -38,7 +49,7 @@ def extract_cat(coin_spend: CoinSpend) -> Union[
 ]:
     outer_puzzle = coin_spend.puzzle_reveal.to_program()
     outer_solution = coin_spend.solution.to_program()
-    matched, curried_args = match_cat_puzzle(outer_puzzle)
+    matched, curried_args = match_cat1_puzzle(outer_puzzle)
 
     if not matched:
         return None
