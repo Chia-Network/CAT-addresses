@@ -8,7 +8,7 @@ from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
 from chia.util.ints import uint64
 from chia.util.hash import std_hash
-from chia.wallet.cat_wallet.cat_utils import CAT_MOD, construct_cat_puzzle
+from chia.wallet.cat_wallet.cat_utils import construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
@@ -16,6 +16,7 @@ from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat1
 from src.config import Config
 from src.database import connection, get_initial_id, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
+from src.puzzles.cat_loader import CAT1_MOD
 
 
 def created_outputs_for_conditions_dict(
@@ -104,7 +105,7 @@ class CatSnapshot:
 
                 for coin in inner_puzzle_create_coin_conditions:
                     outer_puzzle_hash = construct_cat_puzzle(
-                        CAT_MOD,
+                        CAT1_MOD,
                         bytes32.fromhex(tail_hash),
                         coin.puzzle_hash
                     ).get_tree_hash(coin.puzzle_hash)
