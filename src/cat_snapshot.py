@@ -12,7 +12,7 @@ from chia.wallet.cat_wallet.cat_utils import construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
-from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat1
+from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat2
 from src.config import Config
 from src.database import connection, get_initial_id, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
@@ -166,7 +166,7 @@ class CatSnapshot:
         cursor = connection.cursor()
 
         for coin_spend in coin_spends:
-            result = extract_cat1(coin_spend)
+            result = extract_cat2(coin_spend)
 
             if result is None:
                 self.log.debug("Found non-CAT coin spend")
@@ -181,6 +181,8 @@ class CatSnapshot:
                     inner_puzzle,
                     _
                 ) = result
+
+                # Todo: Find TAIL by checking parents until it is revealed
 
                 spent_coin_record = CoinSpendRecord(
                     coin_name=coin_spend.coin.name().hex(),

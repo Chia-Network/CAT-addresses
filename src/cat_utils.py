@@ -9,14 +9,24 @@ from chia.util.condition_tools import conditions_dict_for_solution
 from chia.util.ints import uint64
 from clvm.casts import int_from_bytes
 
-from src.puzzles.cat_loader import CAT1_MOD
+from src.puzzles.cat_loader import CAT1_MOD, CAT2_MOD
 
 def match_cat1_puzzle(puzzle: Program) -> Tuple[bool, Iterator[Program]]:
     """
-    Given a puzzle test if it's a CAT and, if it is, return the curried arguments
+    Given a puzzle test if it's a CAT1 and, if it is, return the curried arguments
     """
     mod, curried_args = puzzle.uncurry()
     if mod == CAT1_MOD:
+        return True, curried_args.as_iter()
+    else:
+        return False, iter(())
+
+def match_cat2_puzzle(puzzle: Program) -> Tuple[bool, Iterator[Program]]:
+    """
+    Given a puzzle test if it's a CAT2 and, if it is, return the curried arguments
+    """
+    mod, curried_args = puzzle.uncurry()
+    if mod == CAT2_MOD:
         return True, curried_args.as_iter()
     else:
         return False, iter(())
@@ -50,6 +60,28 @@ def extract_cat1(coin_spend: CoinSpend) -> Union[
     outer_puzzle = coin_spend.puzzle_reveal.to_program()
     outer_solution = coin_spend.solution.to_program()
     matched, curried_args = match_cat1_puzzle(outer_puzzle)
+
+    if not matched:
+        return None
+
+    _, tail_hash, inner_puzzle = curried_args
+    inner_solution = outer_solution.first()
+
+    return tail_hash, outer_puzzle, outer_solution, inner_puzzle, inner_solution
+
+def extract_cat2(coin_spend: CoinSpend) -> Union[
+    None,
+    Tuple[
+        Program,
+        Program,
+        Program,
+        Program,
+        Program
+    ]
+]:
+    outer_puzzle = coin_spend.puzzle_reveal.to_program()
+    outer_solution = coin_spend.solution.to_program()
+    matched, curried_args = match_cat2_puzzle(outer_puzzle)
 
     if not matched:
         return None
