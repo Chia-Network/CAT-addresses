@@ -6,13 +6,14 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.condition_with_args import ConditionWithArgs
+from chia.util.condition_tools import conditions_dict_for_solution
 from chia.util.ints import uint64
 from chia.util.hash import std_hash
 from chia.wallet.cat_wallet.cat_utils import construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
-from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat2, match_cat2_puzzle
+from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat2, has_magic_spends, match_cat2_puzzle
 from src.config import Config
 from src.database import connection, get_initial_id, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
@@ -217,8 +218,43 @@ class CatSnapshot:
 
             # Not CAT2
             if not matched:
+                children = await self.full_node.get_coin_records_by_parent_ids([coin_spend.coin.name()], True)
+
+                for child in children:
+                    child_reveal = await self.full_node.get_puzzle_and_solution(
+                        child.coin.name(),
+                        child.spent_block_index
+                    )
+
+                    if child_reveal is not None:
+                        matched, curried_args = match_cat2_puzzle(child_reveal.puzzle_reveal)
+
+                        if matched:
+                            _, tail_hash, inner_puzzle = curried_args
+                            inner_solution = child_reveal.solution.to_program().first()
+
+                            _, r = inner_puzzle.run_with_cost(0, inner_solution)
+
+                            for condition in r.as_iter():
+                                self.log.info(condition)
+
+                                code = condition.first()
+
+                                if code == 51:
+                                    amount = condition.rest().rest().first()
+
+                                    if amount == -113:
+                                        self.log.info("MAGIC SPEND!!!!")
+                                        tail_reveal = condition.rest().rest().rest()
+                                        self.log.info(f"tail_hash={tail_hash.as_python().hex()} reveal={tail_reveal}")
+
+                                        raise Exception("noice")
+                        else:
+                            self.log.info("child not CAT2")
                 # look at all children of this non-CAT2 - at least 1 should have magic spend of -113
 
                 # Look at all CAT2 children of the non-CAT2 and 
 
                 # Extract TAIL reveal from the magic spend
+                self.log.info(children)
+                raise Exception("found non cat2 :))")

@@ -47,6 +47,18 @@ def created_outputs_for_conditions_dict(
     return output_coins
 
 
+def has_magic_spends(
+    conditions_dict: Dict[ConditionOpcode, List[ConditionWithArgs]]
+) -> List[Coin]:
+    for cvp in conditions_dict.get(ConditionOpcode.CREATE_COIN, []):
+        _, amount_bin = cvp.vars[0], cvp.vars[1]
+        amount = int_from_bytes(amount_bin)
+
+        if amount == -113:
+            return True
+    return False
+
+
 def extract_cat1(coin_spend: CoinSpend) -> Union[
     None,
     Tuple[

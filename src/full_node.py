@@ -59,11 +59,15 @@ class FullNode:
     @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
     async def get_block_spends(self, header_hash: str) -> Optional[List[CoinSpend]]:
         return await self.client.get_block_spends(header_hash)
-    
+
     @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
     async def get_coin_record_by_name(self, coin_id: bytes32) -> CoinRecord:
         return await self.client.get_coin_record_by_name(coin_id)
-    
+
     @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
-    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[List[CoinSpend]]:
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[CoinSpend]:
         return await self.client.get_puzzle_and_solution(coin_id, height)
+
+    @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
+    async def get_coin_records_by_parent_ids(self, parent_ids: List[bytes32], include_spent_coins: bool) -> List[CoinRecord]:
+        return await self.client.get_coin_records_by_parent_ids(parent_ids, include_spent_coins)
