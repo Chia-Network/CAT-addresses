@@ -4,7 +4,10 @@ import logging
 from typing import Dict, List, Optional
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend
+from chia.util.ints import uint32
 from src.config import RpcOptions
 
 
@@ -56,3 +59,11 @@ class FullNode:
     @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
     async def get_block_spends(self, header_hash: str) -> Optional[List[CoinSpend]]:
         return await self.client.get_block_spends(header_hash)
+    
+    @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
+    async def get_coin_record_by_name(self, coin_id: bytes32) -> CoinRecord:
+        return await self.client.get_coin_record_by_name(coin_id)
+    
+    @backoff.on_exception(backoff.expo, ValueError, max_tries=RpcOptions.retry_count)
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[List[CoinSpend]]:
+        return await self.client.get_puzzle_and_solution(coin_id, height)

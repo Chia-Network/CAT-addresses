@@ -12,7 +12,7 @@ from chia.wallet.cat_wallet.cat_utils import construct_cat_puzzle
 from clvm.casts import int_from_bytes, int_to_bytes
 from src.coin_spend_record import CoinSpendRecord
 from src.coin_create_record import CoinCreateRecord
-from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat2
+from src.cat_utils import create_coin_conditions_for_inner_puzzle, extract_cat2, match_cat2_puzzle
 from src.config import Config
 from src.database import connection, get_initial_id, get_next_coin_spends, persist_coin_create, persist_coin_spend
 from src.full_node import FullNode
@@ -151,13 +151,13 @@ class CatSnapshot:
 
             if coin_spends is not None:
                 self.log.info("%i spends found in block", len(coin_spends))
-                self.__process_coin_spends(height, block_record.header_hash, coin_spends)
+                await self.__process_coin_spends(height, block_record.header_hash, coin_spends)
             else:
                 self.log.info("None at %i", height)
         else:
             self.log.info("Skipping non-transaction block at height %i", height)
 
-    def __process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
+    async def __process_coin_spends(self, height, header_hash: str, coin_spends: Optional[List[CoinSpend]]):
         if coin_spends is None or len(coin_spends) == 0:
             return None
 
@@ -182,7 +182,7 @@ class CatSnapshot:
                     _
                 ) = result
 
-                # Todo: Find TAIL by checking parents until it is revealed
+                tail_reveal = await self._find_tail_reveal(coin_spend)
 
                 spent_coin_record = CoinSpendRecord(
                     coin_name=coin_spend.coin.name().hex(),
@@ -199,3 +199,26 @@ class CatSnapshot:
 
         connection.commit()
         cursor.close()
+
+    async def _find_tail_reveal(self, coin_spend: CoinSpend) -> Program:
+        coin_spend = coin_spend
+
+        while True:
+            matched, curried_args = match_cat2_puzzle(coin_spend.puzzle_reveal)
+
+            if matched:
+                # Still CAT2 so request parent of this coin and continue
+                coin_record = await self.full_node.get_coin_record_by_name(coin_spend.coin.name())
+                parent = await self.full_node.get_puzzle_and_solution(coin_spend.coin.parent_coin_info, coin_record.confirmed_block_index)
+
+                coin_spend = parent
+
+                continue
+
+            # Not CAT2
+            if not matched:
+                # look at all children of this non-CAT2 - at least 1 should have magic spend of -113
+
+                # Look at all CAT2 children of the non-CAT2 and 
+
+                # Extract TAIL reveal from the magic spend
