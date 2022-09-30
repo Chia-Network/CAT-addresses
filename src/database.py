@@ -3,10 +3,27 @@ import sqlite3
 from sqlite3 import Cursor
 from src.coin_create_record import CoinCreateRecord
 from src.coin_spend_record import CoinSpendRecord
+from src.tail_record import TailRecord
 from src.config import Config
 
 
 connection: sqlite3.Connection = sqlite3.connect(Config.database_path)
+
+
+def persist_tail(cursor: Cursor, tail_record: TailRecord) -> None:
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO tail(
+            hash,
+            type
+        )
+        VALUES(?, ?)
+        """,
+        (
+            tail_record.hash,
+            tail_record.type
+        )
+    )
 
 
 def persist_coin_spend(cursor: Cursor, coin_spend_record: CoinSpendRecord) -> None:
@@ -90,6 +107,7 @@ def persist_coin_create(cursor: Cursor, coin_create_record: CoinCreateRecord) ->
         )
     )
 
+
 def get_distinct_tail_hashes():
     cursor = connection.cursor()
     cursor.execute("SELECT DISTINCT tail_hash FROM coin_create")
@@ -100,6 +118,7 @@ def get_distinct_tail_hashes():
     connection.commit()
     cursor.close()
     return value
+
 
 def get_all_cat_balances(coins: bool):
     cursor = connection.cursor()
@@ -131,6 +150,7 @@ def get_all_cat_balances(coins: bool):
     cursor.close()
     return value
 
+
 def get_cat_balance(tail_hash: str, coins: bool):
     cursor = connection.cursor()
     if coins:
@@ -161,6 +181,7 @@ def get_cat_balance(tail_hash: str, coins: bool):
     connection.commit()
     cursor.close()
     return value
+
 
 def delete_coins_above(height: int):
     cursor = connection.cursor()

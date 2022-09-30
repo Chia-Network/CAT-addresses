@@ -38,6 +38,15 @@ cursor.execute(
     );
     """
 )
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS tail(
+        hash TEXT NOT NULL,
+        type TEXT NOT NULL,
+        PRIMARY KEY (hash)
+    );
+    """
+)
 
 connection.commit()
 cursor.close()
