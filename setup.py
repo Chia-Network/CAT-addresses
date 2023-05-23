@@ -11,7 +11,7 @@ dependencies = [
     "click==8.1.3",
     "influxdb_client==1.29.1",
     "python-dotenv==0.20.0",
-    "requests==2.28.0",
+    "requests==2.31.0",
 ]
 
 dev_dependencies = [
