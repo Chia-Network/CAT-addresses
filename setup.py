@@ -6,7 +6,7 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "aiohttp==3.8.1",
+    "aiohttp==3.8.5",
     "backoff==2.0.1",
     "click==8.1.3",
     "influxdb_client==1.29.1",
